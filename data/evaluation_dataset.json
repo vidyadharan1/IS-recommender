@@ -1,0 +1,282 @@
+[
+  {
+    "id": "eval_01",
+    "domain": "Civil - Steel Reinforcement",
+    "procurement_specification": "Supply of Fe 500D grade High Strength Deformed TMT steel reinforcement bars 12mm and 16mm diameter conforming to BIS standards with minimum 0.2% proof stress of 500 N/mm2, tensile strength minimum 565 N/mm2, and percentage elongation not less than 16% for bridge RCC construction works.",
+    "expected_standard_code": "IS 1786",
+    "expected_standard_id": "IS 1786:2008"
+  },
+  {
+    "id": "eval_02",
+    "domain": "Civil - Cement",
+    "procurement_specification": "Procurement of 53 Grade Ordinary Portland Cement (OPC) in 50 kg HDPE bags for structural concrete works. Must have 28-day compressive strength not less than 53 MPa, initial setting time minimum 30 minutes, and Blaine fineness not less than 225 m2/kg.",
+    "expected_standard_code": "IS 269",
+    "expected_standard_id": "IS 269:2015"
+  },
+  {
+    "id": "eval_03",
+    "domain": "Civil - Structural Steel",
+    "procurement_specification": "Supply of hot rolled structural steel sections including MS angles, channels, beams, and plates of Grade E250 Quality A conforming to Indian Standards for heavy industrial warehouse shed fabrication.",
+    "expected_standard_code": "IS 2062",
+    "expected_standard_id": "IS 2062:2011"
+  },
+  {
+    "id": "eval_04",
+    "domain": "Civil - Concrete",
+    "procurement_specification": "Ready Mixed Concrete (RMC) of Grade M30 and M35 with slump 120 mm delivered by transit mixer at construction site with computer-controlled batching within 2 hours of production.",
+    "expected_standard_code": "IS 4926",
+    "expected_standard_id": "IS 4926:2003"
+  },
+  {
+    "id": "eval_05",
+    "domain": "Civil - Plumbing Pipes",
+    "procurement_specification": "Supply of unplasticized PVC pipes (uPVC) Class 3 (0.6 MPa) and Class 4 (0.8 MPa) 110mm and 160mm outer diameter for potable drinking water supply distribution with lead-free formulation and hydrostatic pressure testing.",
+    "expected_standard_code": "IS 4985",
+    "expected_standard_id": "IS 4985:2000"
+  },
+  {
+    "id": "eval_06",
+    "domain": "Civil - Tubewell Casing",
+    "procurement_specification": "Deep tube-well casing pipes and ribbed screen slotted pipes of uPVC nominal diameter 150mm and 200mm CM grade for drinking water borewells with flush joints and collapse resistance.",
+    "expected_standard_code": "IS 12818",
+    "expected_standard_id": "IS 12818:2010"
+  },
+  {
+    "id": "eval_07",
+    "domain": "Civil - Water Mains",
+    "procurement_specification": "Centrifugally cast Ductile Iron pressure pipes Class K9 conforming to BIS specification with socket and spigot ends, internal Portland cement mortar lining, and external zinc coating with finishing layer for municipal clear water transmission mains.",
+    "expected_standard_code": "IS 8329",
+    "expected_standard_id": "IS 8329:2000"
+  },
+  {
+    "id": "eval_08",
+    "domain": "Civil - GI Pipes",
+    "procurement_specification": "Galvanized Iron (GI) pipes Medium Class B screwed and socketed 25mm, 40mm, and 50mm nominal bore for internal plumbing and water supply distribution lines.",
+    "expected_standard_code": "IS 1239 Part 1",
+    "expected_standard_id": "IS 1239 Part 1:2004"
+  },
+  {
+    "id": "eval_09",
+    "domain": "Civil - Road Paving",
+    "procurement_specification": "Supply of paving grade bitumen VG-30 in bulk tankers for bituminous concrete (BC) and dense bituminous macadam (DBM) wearing courses on National Highway pavement.",
+    "expected_standard_code": "IS 73",
+    "expected_standard_id": "IS 73:2013"
+  },
+  {
+    "id": "eval_10",
+    "domain": "Civil - Bricks",
+    "procurement_specification": "Common burnt clay building bricks of class designation 10 (minimum compressive strength 10 N/mm2) with water absorption not exceeding 20% by weight and slight efflorescence for load-bearing brick masonry.",
+    "expected_standard_code": "IS 1077",
+    "expected_standard_id": "IS 1077:1992"
+  },
+  {
+    "id": "eval_11",
+    "domain": "Electrical - Building Wires",
+    "procurement_specification": "Supply of 1100V grade PVC insulated single core unsheathed stranded bright annealed copper conductor building wire size 2.5 sq mm and 4.0 sq mm flame retardant low smoke (FR-LSH) with Oxygen Index min 29% for office electrification.",
+    "expected_standard_code": "IS 694",
+    "expected_standard_id": "IS 694:2010"
+  },
+  {
+    "id": "eval_12",
+    "domain": "Electrical - Power Cables",
+    "procurement_specification": "Supply of 1.1 kV grade 3.5 core 185 sq mm XLPE insulated galvanized flat steel strip armoured aluminium conductor power cable for main feeder connection between substation and LT panel.",
+    "expected_standard_code": "IS 7098 Part 1",
+    "expected_standard_id": "IS 7098 Part 1:1988"
+  },
+  {
+    "id": "eval_13",
+    "domain": "Electrical - HT Cables",
+    "procurement_specification": "11 kV grade 3 core 300 sq mm stranded compacted aluminium conductor, screened, XLPE insulated, round galvanized steel wire armoured HT power cable with extruded outer sheath and partial discharge test under 5 pC.",
+    "expected_standard_code": "IS 7098 Part 2",
+    "expected_standard_id": "IS 7098 Part 2:2011"
+  },
+  {
+    "id": "eval_14",
+    "domain": "Electrical - Transformer",
+    "procurement_specification": "Procurement of 500 kVA, 11 kV / 433 V, 3-phase, 50 Hz, outdoor type oil immersed copper wound step-down distribution transformer conforming to BIS Energy Efficiency Level 2 with total losses at 50% and 100% load within limits.",
+    "expected_standard_code": "IS 1180 Part 1",
+    "expected_standard_id": "IS 1180 Part 1:2014"
+  },
+  {
+    "id": "eval_15",
+    "domain": "Electrical - LED Street Light",
+    "procurement_specification": "Outdoor road and street lighting luminaires with high power LED light source 90 Watt, system luminous efficacy > 120 lm/W, CCT 5700K, CRI > 70, power factor > 0.95, THD < 10%, IP66 ingress protection, and 10kV surge protection.",
+    "expected_standard_code": "IS 16107 Part 2 Sec 1",
+    "expected_standard_id": "IS 16107 Part 2 Sec 1:2012"
+  },
+  {
+    "id": "eval_16",
+    "domain": "Electrical - LED Driver",
+    "procurement_specification": "Constant current electronic controlgear (LED driver) for 60W street light fixture with universal input voltage 140-300V AC, high voltage cutoff 320V, SELV output isolation, and 4kV surge withstand capability.",
+    "expected_standard_code": "IS 15885 Part 2 Sec 13",
+    "expected_standard_id": "IS 15885 Part 2 Sec 13:2012"
+  },
+  {
+    "id": "eval_17",
+    "domain": "Electrical - Ceiling Fans",
+    "procurement_specification": "Supply of 1200 mm sweep BEE 5-Star rated BLDC motor energy efficient ceiling fans with remote control, air delivery minimum 220 m3/min, power consumption not exceeding 28 Watts, and safety wire suspension mechanism.",
+    "expected_standard_code": "IS 374",
+    "expected_standard_id": "IS 374:2019"
+  },
+  {
+    "id": "eval_18",
+    "domain": "Electrical - Solar Panels",
+    "procurement_specification": "Crystalline silicon solar photovoltaic (PV) modules of 450Wp capacity with 144 half-cut cells, module efficiency min 20.5%, positive power tolerance, tested for 5400 Pa mechanical snow load and 2400 Pa wind load under damp heat and thermal cycling conditions.",
+    "expected_standard_code": "IS 14286",
+    "expected_standard_id": "IS 14286:2010"
+  },
+  {
+    "id": "eval_19",
+    "domain": "Electrical - Solar Inverter",
+    "procurement_specification": "Three phase grid-tied solar string inverter 50 kW capacity with multiple MPPT trackers, max efficiency 98.6%, anti-islanding protection disconnection within 2 seconds, and IP65 enclosure for rooftop solar power plant.",
+    "expected_standard_code": "IS 16221 Part 2",
+    "expected_standard_id": "IS 16221 Part 2:2015"
+  },
+  {
+    "id": "eval_20",
+    "domain": "Electrical - MCB",
+    "procurement_specification": "Miniature Circuit Breakers (MCB) 10kA breaking capacity, 240/415V AC, Type C tripping curve, single pole and triple pole ratings 16A, 32A, and 63A for electrical distribution boards.",
+    "expected_standard_code": "IS/IEC 60898 Part 1",
+    "expected_standard_id": "IS/IEC 60898 Part 1:2002"
+  },
+  {
+    "id": "eval_21",
+    "domain": "Electrical - RCCB",
+    "procurement_specification": "Four pole 63 Ampere Residual Current Circuit Breaker (RCCB) with 30 mA operating trip sensitivity for human electric shock protection in hospital distribution boards with test button.",
+    "expected_standard_code": "IS 12640 Part 1",
+    "expected_standard_id": "IS 12640 Part 1:2016"
+  },
+  {
+    "id": "eval_22",
+    "domain": "Electrical - MCCB",
+    "procurement_specification": "Moulded Case Circuit Breaker (MCCB) 4 Pole 400 Ampere with microprocessor based trip release, Icu = 50 kA at 415V AC, 100% Ics rating, with adjustable overload and short circuit protection.",
+    "expected_standard_code": "IS/IEC 60947 Part 2",
+    "expected_standard_id": "IS/IEC 60947 Part 2:2016"
+  },
+  {
+    "id": "eval_23",
+    "domain": "Electrical - Earthing",
+    "procurement_specification": "Maintenance free chemical earthing electrode comprising 17.2mm diameter 3 metre length copper bonded high tensile carbon steel rod (minimum 250 micron copper coating) with carbonaceous ground enhancement backfill compound.",
+    "expected_standard_code": "IS 3043",
+    "expected_standard_id": "IS 3043:2018"
+  },
+  {
+    "id": "eval_24",
+    "domain": "Electrical - Batteries",
+    "procurement_specification": "12V 100Ah Sealed Maintenance Free (SMF) Valve Regulated Lead Acid (VRLA) batteries with AGM separators for 20 kVA online UPS system backup.",
+    "expected_standard_code": "IS 15549",
+    "expected_standard_id": "IS 15549:2005"
+  },
+  {
+    "id": "eval_25",
+    "domain": "Safety - Fire Extinguisher",
+    "procurement_specification": "Procurement of portable 6 kg capacity stored pressure ABC dry powder fire extinguisher containing monoammonium phosphate 50% min, with pressure gauge, squeeze grip valve, discharge hose, and fire rating minimum 3A 89B.",
+    "expected_standard_code": "IS 15683",
+    "expected_standard_id": "IS 15683:2018"
+  },
+  {
+    "id": "eval_26",
+    "domain": "Safety - Footwear",
+    "procurement_specification": "Industrial safety shoes with steel toe cap capable of withstanding 200 Joules impact and 15 kN compression, anti-skid dual density PU sole, antistatic properties, and penetration-resistant steel midsole.",
+    "expected_standard_code": "IS 15298 Part 2",
+    "expected_standard_id": "IS 15298 Part 2:2016"
+  },
+  {
+    "id": "eval_27",
+    "domain": "Safety - Helmet",
+    "procurement_specification": "Industrial safety helmets made of high density polyethylene (HDPE) with 4-point adjustable head harness, chin strap, shock absorption capacity (transmitted force < 5 kN), and electrical insulation test 2000V.",
+    "expected_standard_code": "IS 2925",
+    "expected_standard_id": "IS 2925:1984"
+  },
+  {
+    "id": "eval_28",
+    "domain": "Safety - Fall Arrest",
+    "procurement_specification": "Full body safety harness with dorsal attachment D-ring, adjustable chest and leg straps made of high strength polyester webbing, paired with energy absorbing lanyard for fall protection during height work.",
+    "expected_standard_code": "IS 3521 Part 1",
+    "expected_standard_id": "IS 3521 Part 1:1999"
+  },
+  {
+    "id": "eval_29",
+    "domain": "Mechanical - Valves",
+    "procurement_specification": "Gunmetal gate valves Class 1 nominal diameter 50mm and 25mm screwed female ends with rising/non-rising stem, handwheel operated, hydrostatically tested body 2.4 MPa and seat 1.6 MPa for water supply piping.",
+    "expected_standard_code": "IS 778",
+    "expected_standard_id": "IS 778:1984"
+  },
+  {
+    "id": "eval_30",
+    "domain": "Mechanical - Sluice Valves",
+    "procurement_specification": "Cast Iron flanged sluice valves nominal diameter 150mm and 200mm PN 1.6 rating with bronze trim, stainless steel spindle, inside screw non-rising stem for pumping station discharge isolation.",
+    "expected_standard_code": "IS 14846",
+    "expected_standard_id": "IS 14846:2000"
+  },
+  {
+    "id": "eval_31",
+    "domain": "Mechanical - Pumps",
+    "procurement_specification": "Horizontal end suction centrifugal clear water pump driven by 7.5 kW induction motor, duty point discharge 50 m3/hr at 30 metres head, cast iron casing, bronze impeller, and mechanical seal.",
+    "expected_standard_code": "IS 1520",
+    "expected_standard_id": "IS 1520:1980"
+  },
+  {
+    "id": "eval_32",
+    "domain": "Mechanical - Welding Consumable",
+    "procurement_specification": "Basic coated low-hydrogen manual metal arc welding electrodes size 3.15mm and 4.00mm conforming to AWS E7018 equivalent for radiographic quality structural steel welding with all-weld tensile strength 510-600 MPa.",
+    "expected_standard_code": "IS 814",
+    "expected_standard_id": "IS 814:2004"
+  },
+  {
+    "id": "eval_33",
+    "domain": "IT - Computers",
+    "procurement_specification": "Commercial desktop computers with Intel Core i7 processor, 16GB DDR4 RAM, 512GB SSD, integrated graphics, 24-inch LED display, and SMPS power supply certified under BIS Compulsory Registration Scheme for safety.",
+    "expected_standard_code": "IS 13252 Part 1",
+    "expected_standard_id": "IS 13252 Part 1:2010"
+  },
+  {
+    "id": "eval_34",
+    "domain": "Office - Paper",
+    "procurement_specification": "Supply of A4 plain paper for high speed copiers and laser printing, substance 75 GSM, 500 sheets per ream, ISO brightness minimum 88%, opacity 90%, jam free operation.",
+    "expected_standard_code": "IS 14490",
+    "expected_standard_id": "IS 14490:1997"
+  },
+  {
+    "id": "eval_35",
+    "domain": "Office - Furniture",
+    "procurement_specification": "High back ergonomic office executive revolving chair with breathable mesh back, adjustable lumbar support, synchronous tilt mechanism, pneumatic Class 4 gas lift for height adjustment, and nylon castor wheels.",
+    "expected_standard_code": "IS 3499",
+    "expected_standard_id": "IS 3499:2017"
+  },
+  {
+    "id": "eval_36",
+    "domain": "Medical - Masks",
+    "procurement_specification": "Disposable 3-ply surgical face masks with meltblown filter layer, bacterial filtration efficiency (BFE) > 98%, differential pressure < 29.4 Pa/cm2, fluid splash resistance at 120 mmHg, and comfortable elastic ear loops for hospital staff.",
+    "expected_standard_code": "IS 16289",
+    "expected_standard_id": "IS 16289:2014"
+  },
+  {
+    "id": "eval_37",
+    "domain": "Medical - Respirators",
+    "procurement_specification": "Particulate filtering half mask respirators (FFP2 / N95 equivalent) with minimum 94% filtration efficiency against airborne sodium chloride particles and paraffin oil mist, with adjustable nose bridge and headband.",
+    "expected_standard_code": "IS 9473",
+    "expected_standard_id": "IS 9473:2002"
+  },
+  {
+    "id": "eval_38",
+    "domain": "Medical - Gloves",
+    "procurement_specification": "Sterile disposable latex surgical gloves size 7.0 and 7.5, powder-free, watertightness inspection conforming to AQL 1.5, tensile strength > 24 MPa, and elongation > 750% for surgical operating theaters.",
+    "expected_standard_code": "IS 13422",
+    "expected_standard_id": "IS 13422:2021"
+  },
+  {
+    "id": "eval_39",
+    "domain": "Food & Water - Potable Water",
+    "procurement_specification": "Water quality testing and supply verification of potable drinking water for municipal cantonment: TDS < 500 mg/L, turbidity < 1 NTU, total hardness < 200 mg/L, and zero detectable E.coli bacteria in 100 ml sample.",
+    "expected_standard_code": "IS 10500",
+    "expected_standard_id": "IS 10500:2012"
+  },
+  {
+    "id": "eval_40",
+    "domain": "Food - Atta",
+    "procurement_specification": "Supply of whole wheat flour (Chakki Atta) in 50 kg jute bags for government hostel mess: moisture content max 14%, total ash max 2.0%, gluten min 6.0%, free from insect infestation and rancid odor.",
+    "expected_standard_code": "IS 1155",
+    "expected_standard_id": "IS 1155:1968"
+  }
+]
