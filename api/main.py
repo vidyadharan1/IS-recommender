@@ -58,10 +58,12 @@ else:
     # Allow all origins if not explicitly restricted (development mode)
     allowed_origins = ["*"]
 
+is_wildcard = "*" in allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=not is_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
 )

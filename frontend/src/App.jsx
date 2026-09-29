@@ -32,10 +32,18 @@ import {
 import './App.css';
 import benchmarkMetrics from './data/benchmark_metrics.json';
 
-// In production (e.g. Vercel), set VITE_API_URL to your Render or Hugging Face backend URL.
-// In local development, leaving it empty routes via Vite proxy to http://127.0.0.1:8000.
-const rawApiUrl = import.meta.env.VITE_API_URL;
-const API_BASE = (rawApiUrl ? rawApiUrl.replace(/\/+$/, '') : '') + '/api/v1';
+// Production API endpoint resolution (e.g., on Vercel)
+// Dynamically reads import.meta.env.VITE_API_URL.
+// In local development, an empty VITE_API_URL falls back to '/api/v1' which is proxied by Vite to http://127.0.0.1:8000.
+const getApiBase = () => {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw || !raw.trim()) {
+    return '/api/v1';
+  }
+  const clean = raw.trim().replace(/\/+$/, '');
+  return clean.endsWith('/api/v1') ? clean : `${clean}/api/v1`;
+};
+const API_BASE = getApiBase();
 
 const SAMPLE_SPECS = [
   {
