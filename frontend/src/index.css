@@ -1,100 +1,258 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* ==========================================================================
+   IS-Recommender Design System & Theme Tokens (SIH 26108)
+   Bureau of Indian Standards (BIS) & Government e-Marketplace (GeM)
+   ========================================================================== */
 
-:root {
-  --bg-primary: #0a0f1d;
-  --bg-secondary: #0f172a;
-  --bg-card: rgba(17, 24, 39, 0.75);
-  --bg-card-hover: rgba(30, 41, 59, 0.85);
-  --bg-input: #131d33;
-  --bg-glass: rgba(15, 23, 42, 0.65);
-  
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-accent: rgba(59, 130, 246, 0.3);
-  --border-highlight: rgba(99, 102, 241, 0.4);
+:root, [data-theme="dark"] {
+  /* Dark Theme Palette (Default) */
+  --theme-mode: dark;
+  --bg-primary: #0a0f1f;
+  --bg-secondary: #111a33;
+  --bg-dark-start: #0a0f1f;
+  --bg-dark-end: #111a33;
+  --bg-surface: #0e162c;
+  --bg-surface-elevated: #15203d;
+  --bg-input: rgba(10, 15, 31, 0.85);
 
+  /* Glassmorphism Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-hover: rgba(255, 255, 255, 0.075);
+  --glass-bg-active: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(99, 102, 241, 0.35);
+  --glass-blur: blur(14px);
+  --glass-card: rgba(255, 255, 255, 0.035);
+
+  /* Accent Gradient (Electric Indigo to Cyan) */
+  --accent-indigo: #6366f1;
+  --accent-cyan: #22d3ee;
+  --accent-blue: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #22d3ee 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+  --accent-glow: 0 0 25px rgba(99, 102, 241, 0.35);
+  --cyan-glow: 0 0 20px rgba(34, 211, 238, 0.25);
+
+  /* Semantic State Colors */
+  --color-success: #10b981;
+  --color-success-glow: 0 0 16px rgba(16, 185, 129, 0.35);
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.35);
+
+  --color-warning: #f59e0b;
+  --color-warning-glow: 0 0 16px rgba(245, 158, 11, 0.3);
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.35);
+
+  --color-danger: #f43f5e;
+  --color-danger-glow: 0 0 16px rgba(244, 63, 94, 0.3);
+  --color-danger-bg: rgba(244, 63, 94, 0.12);
+  --color-danger-border: rgba(244, 63, 94, 0.35);
+
+  --color-info: #38bdf8;
+  --color-info-bg: rgba(56, 189, 248, 0.1);
+  --color-info-border: rgba(56, 189, 248, 0.3);
+
+  /* Typography Colors */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
+  --text-dim: #475569;
+  --text-accent: #38bdf8;
 
-  --accent-saffron: #f97316;
-  --accent-saffron-glow: rgba(249, 115, 22, 0.25);
-  --accent-blue: #3b82f6;
-  --accent-blue-glow: rgba(59, 130, 246, 0.25);
-  --accent-indigo: #6366f1;
-  --accent-emerald: #10b981;
-  --accent-emerald-glow: rgba(16, 185, 129, 0.25);
-  --accent-amber: #f59e0b;
-  --accent-rose: #f43f5e;
+  /* Typography Fonts */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
+  /* Border Radii */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
-  --radius-xl: 22px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 
-  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px -8px rgba(0, 0, 0, 0.65);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
-  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --shadow-glow: 0 0 35px -5px rgba(59, 130, 246, 0.2);
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Grid overlay token */
+  --grid-line: rgba(255, 255, 255, 0.025);
+  --radial-glow-1: rgba(99, 102, 241, 0.12);
+  --radial-glow-2: rgba(34, 211, 238, 0.09);
 }
 
-* {
+/* Light Theme Variables */
+[data-theme="light"] {
+  --theme-mode: light;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #eef2f6;
+  --bg-dark-start: #f8fafc;
+  --bg-dark-end: #eef2f6;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-input: #ffffff;
+
+  /* Glassmorphism Tokens for Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg-hover: rgba(255, 255, 255, 0.95);
+  --glass-bg-active: #ffffff;
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-border-hover: rgba(99, 102, 241, 0.4);
+  --glass-card: rgba(255, 255, 255, 0.9);
+
+  /* Semantic State Colors for Light Mode */
+  --color-success: #059669;
+  --color-success-glow: 0 0 16px rgba(16, 185, 129, 0.2);
+  --color-success-bg: rgba(16, 185, 129, 0.1);
+  --color-success-border: rgba(16, 185, 129, 0.3);
+
+  --color-warning: #d97706;
+  --color-warning-glow: 0 0 16px rgba(245, 158, 11, 0.2);
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+
+  --color-danger: #e11d48;
+  --color-danger-glow: 0 0 16px rgba(244, 63, 94, 0.2);
+  --color-danger-bg: rgba(244, 63, 94, 0.08);
+  --color-danger-border: rgba(244, 63, 94, 0.25);
+
+  --color-info: #0284c7;
+  --color-info-bg: rgba(2, 132, 199, 0.08);
+  --color-info-border: rgba(2, 132, 199, 0.25);
+
+  /* Typography Colors for Light Mode */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --text-accent: #4f46e5;
+
+  /* Shadows for Light Mode */
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px -8px rgba(15, 23, 42, 0.12);
+  --shadow-glass: 0 10px 30px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  /* Grid overlay token */
+  --grid-line: rgba(15, 23, 42, 0.035);
+  --radial-glow-1: rgba(99, 102, 241, 0.06);
+  --radial-glow-2: rgba(34, 211, 238, 0.05);
+}
+
+/* Base Styles & Resets */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: var(--font-body);
-  background-color: var(--bg-primary);
+  font-family: var(--font-ui);
+  background-color: var(--bg-dark-start);
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  /* Theme-adaptive gradient with subtle 32px grid overlay */
   background-image: 
-    radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(249, 115, 22, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 50% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-    linear-gradient(to bottom, #090e1a, #0d1527);
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
+    radial-gradient(circle at 12% 15%, var(--radial-glow-1) 0%, transparent 45%),
+    radial-gradient(circle at 88% 22%, var(--radial-glow-2) 0%, transparent 45%),
+    radial-gradient(circle at 50% 85%, var(--radial-glow-1) 0%, transparent 50%),
+    linear-gradient(180deg, var(--bg-dark-start) 0%, var(--bg-dark-end) 100%);
+  background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-slow), color var(--transition-slow);
 }
 
+/* Typography Headings */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  letter-spacing: -0.02em;
+  font-family: var(--font-ui);
+  letter-spacing: -0.025em;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
-code, pre, .mono {
-  font-family: var(--font-mono);
+/* Code & Standards in JetBrains Mono */
+code, pre, .mono, .standard-code, .is-badge, .clause-code {
+  font-family: var(--font-mono) !important;
 }
 
 button {
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   cursor: pointer;
   border: none;
   outline: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-normal);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
 }
 
 input, textarea, select {
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   outline: none;
+  color: var(--text-primary);
 }
 
-/* Scrollbar styles */
+/* Global Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-dark-start);
 }
 ::-webkit-scrollbar-thumb {
-  background: #25334d;
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #384c70;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* Shimmer Animation for Skeleton Loaders */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 37%,
+    rgba(255, 255, 255, 0.03) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="light"] .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.04) 25%,
+    rgba(15, 23, 42, 0.09) 37%,
+    rgba(15, 23, 42, 0.04) 63%
+  );
+  background-size: 400% 100%;
 }

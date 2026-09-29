@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: is-recommender-api
+    runtime: python
+    plan: starter # Recommended: Starter plan (1GB-2GB RAM) for ML sentence-transformers & FAISS
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5173,https://your-frontend.vercel.app

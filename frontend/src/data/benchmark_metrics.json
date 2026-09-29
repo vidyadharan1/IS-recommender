@@ -1,0 +1,19 @@
+{
+  "total_tenders": 40,
+  "top1_accuracy": 92.5,
+  "top3_accuracy": 97.5,
+  "top5_accuracy": 100.0,
+  "mrr": 0.948,
+  "benchmark_avg_latency_ms": 182.4,
+  "dataset_source": "data/evaluation_dataset.json",
+  "dataset_description": "Ministry of Consumer Affairs & GeM SIH26108 Evaluation Dataset",
+  "domains": [
+    "Civil - Steel Reinforcement",
+    "Civil - Cement & Concrete",
+    "Civil - Plumbing & Pipes",
+    "Electrical - Distribution Transformers",
+    "Mechanical - Safety & Fire Protection",
+    "Medical - PPE & Face Masks",
+    "Food & Agriculture - Rations"
+  ]
+}

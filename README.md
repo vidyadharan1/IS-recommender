@@ -240,37 +240,107 @@ GET /api/v1/health
 
 ---
 
-## 🚀 Quick Start & Launch Guide
+## 🚀 Quick Start & Local Setup Guide
 
-### Option 1: Unified One-Click Launcher (Recommended)
+### 1. Unified One-Click Launcher (Recommended)
 Launches the FastAPI backend, boots the Vite frontend, checks health, and opens your browser:
 ```powershell
 python run.py
 ```
 * **Web Portal**: [http://localhost:5173](http://localhost:5173)
 * **Swagger API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 
-### Option 2: Run Backend & Frontend Separately
+### 2. Manual Step-by-Step Local Setup
 
-**1. Start FastAPI Backend:**
+**Backend (FastAPI):**
 ```powershell
+pip install -r requirements.txt
 uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-**2. Start React Frontend:**
+**Frontend (React + Vite):**
 ```powershell
 cd frontend
-npm.cmd run dev
+npm install
+npm run dev
 ```
 
-### Option 3: Interactive Terminal CLI
+### 3. Interactive Terminal CLI
 ```powershell
-# Interactive menu with presets
+# Interactive menu with real presets
 python -m is_recommender.cli --interactive
 
-# Direct single query
+# Direct single tender query
 python -m is_recommender.cli --query "500 kVA outdoor copper distribution transformer"
 ```
+
+---
+
+## 🌐 Production Cloud Deployment Guide
+
+Deploy the project to the internet for free using **Vercel** (Frontend) and **Render** or **Hugging Face Spaces** (Backend).
+
+### Deployment Order:
+1. **Deploy Backend first** to obtain your public backend API URL (e.g. `https://is-recommender-api.onrender.com` or `https://username-is-recommender.hf.space`).
+2. **Deploy Frontend to Vercel** setting `VITE_API_URL` to the backend URL.
+3. **Update `ALLOWED_ORIGINS`** on the backend with your Vercel frontend domain (e.g. `https://your-portal.vercel.app`).
+
+---
+
+### Step 1: Deploy Backend (Option A: Render)
+1. Push your repository to GitHub.
+2. Sign in to [Render](https://render.com) and click **New +** -> **Web Service**.
+3. Select your GitHub repository.
+4. Configure service settings:
+   * **Name**: `is-recommender-api`
+   * **Runtime**: `Python 3`
+   * **Build Command**: `pip install -r requirements.txt`
+   * **Start Command**: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
+   * **Plan**: `Starter` ($7/mo recommended for ML sentence-transformers; free tier has 512MB RAM limit)
+5. Add Environment Variables:
+   | Variable | Value | Description |
+   | :--- | :--- | :--- |
+   | `PORT` | `10000` | Port assigned by Render |
+   | `ALLOWED_ORIGINS` | `http://localhost:5173,https://your-frontend.vercel.app` | Comma-separated CORS allowed domains |
+6. Click **Deploy Web Service** and copy your backend service URL.
+
+---
+
+### Step 1 (Alternative): Deploy Backend 100% Free on Hugging Face Spaces (16 GB RAM)
+> **Why Hugging Face Spaces?** Sentence-transformers + Cross-encoder + FAISS require ~1.4 GB RAM. Hugging Face Spaces provides **16 GB RAM for free**, preventing out-of-memory errors.
+
+1. Go to [Hugging Face Spaces](https://huggingface.co/spaces) and click **Create new Space**.
+2. Space Name: `is-recommender-api`, License: `mit`, Space SDK: **Docker** (Blank).
+3. Push your repository files (the provided `Dockerfile` is automatically built).
+4. In Space Settings -> Variables, add:
+   * `ALLOWED_ORIGINS`: `*` or `https://your-portal.vercel.app`
+5. Your public API endpoint will be: `https://<username>-is-recommender-api.hf.space`.
+
+---
+
+### Step 2: Deploy Frontend on Vercel
+1. Sign in to [Vercel](https://vercel.com) and click **Add New...** -> **Project**.
+2. Import your GitHub repository.
+3. In Project Configuration:
+   * **Root Directory**: `frontend` (or leave root if using root `vercel.json`)
+   * **Framework Preset**: `Vite`
+   * **Build Command**: `npm run build`
+   * **Output Directory**: `dist`
+4. Add Environment Variable:
+   | Variable | Example Value | Description |
+   | :--- | :--- | :--- |
+   | `VITE_API_URL` | `https://is-recommender-api.onrender.com` | Your public backend URL without trailing slash |
+5. Click **Deploy**. Vercel will build and assign your production domain.
+
+---
+
+### Step 3: Verify the Deployed System
+1. Open your Vercel URL in your browser.
+2. Ensure the top status indicator reads: `API Connected • 520 Standards Loaded`.
+3. Click the **Civil: Fe 500D TMT Rebars** preset.
+4. Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> (or click **Recommend Applicable Standards**).
+5. Verify that **IS 1786:2008** appears as Recommendation #1 with a calibrated confidence bar and matched clauses.
 
 ---
 
@@ -280,17 +350,17 @@ Run the full automated pytest suite (15 unit and integration tests):
 ```powershell
 pytest
 ```
-*Output: `15 passed in ~3.2m (100% pass rate)`*
+*Output: `15 passed (100% pass rate)`*
 
 Run the 40-tender empirical benchmark:
 ```powershell
 python tests/evaluate.py
 ```
-*Output: `Precision@1: 92.5%, Precision@5: 100.0%, MRR: 0.9479`*
+*Output: `Precision@1: 92.5%, Precision@3: 97.5%, Precision@5: 100.0%, MRR: 0.9479`*
 
 ---
 
 ## 👥 Authors & Acknowledgments
-* **Problem Statement**: SIH26108
+* **Problem Statement ID**: SIH26108
 * **Entities**: Bureau of Indian Standards (BIS) & Government e-Marketplace (GeM)
 * **License**: MIT

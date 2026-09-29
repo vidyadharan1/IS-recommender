@@ -1,0 +1,15 @@
+# ==============================================================================
+# Production Dependencies for IS-Recommender API (SIH26108)
+# FastAPI + SentenceTransformers + FAISS Dense Vector & BM25 Sparse Hybrid
+# ==============================================================================
+
+fastapi==0.141.1
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+sentence-transformers==6.0.1
+transformers==5.16.1
+torch==2.13.0
+faiss-cpu==1.15.0
+rank-bm25==0.2.2
+numpy==2.3.5
+scipy==1.17.1

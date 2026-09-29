@@ -2,6 +2,7 @@
 FastAPI application entrypoint for IS-Recommender.
 Production-ready REST service designed for GeM (Government e-Marketplace) integration.
 """
+import os
 import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -39,14 +40,40 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware for seamless communication with React frontend & GeM portal
+# Dynamic CORS Configuration from ALLOWED_ORIGINS env variable
+default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins.strip():
+    allowed_origins = [orig.strip() for orig in env_origins.split(",") if orig.strip()]
+    # Keep local development origins intact
+    for orig in default_origins:
+        if orig not in allowed_origins:
+            allowed_origins.append(orig)
+else:
+    # Allow all origins if not explicitly restricted (development mode)
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Root Health Check endpoint (standard requirement for Render, Cloud Run, and load balancers)
+@app.get("/health", summary="Root Health Check")
+async def health_check_root():
+    return {
+        "status": "HEALTHY",
+        "service": "IS-Recommender API",
+        "version": "1.0.0"
+    }
 
 # Mount API v1 router
 app.include_router(api_v1_router)
@@ -58,11 +85,15 @@ async def root():
         "problem_statement": "SIH26108 (Ministry of Consumer Affairs & GeM)",
         "version": "1.0.0",
         "documentation": "/docs",
-        "health": "/api/v1/health",
+        "health": "/health",
+        "api_v1_health": "/api/v1/health",
         "recommend_endpoint": "POST /api/v1/recommend",
         "feedback_endpoint": "POST /api/v1/feedback"
     }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=False)
+    port = int(os.environ.get("PORT", 8000))
+    host = os.environ.get("HOST", "0.0.0.0")
+    print(f"[API] Binding to {host}:{port}")
+    uvicorn.run("api.main:app", host=host, port=port, reload=False)
