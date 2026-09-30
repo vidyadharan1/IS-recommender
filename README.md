@@ -1,383 +1,192 @@
-# 🏛️ IS-Recommender: AI-Based Indian Standards Recommendation Engine for GeM
+# StandardsFinder 🇮🇳
 
-[![SIH Problem Statement](https://img.shields.io/badge/SIH26108-Ministry%20of%20Consumer%20Affairs%20%26%20GeM-blue?style=for-the-badge)](https://sih.gov.in)
-[![Precision@1](https://img.shields.io/badge/Precision%401-92.5%25-success?style=for-the-badge)](#-empirical-benchmark-results)
-[![Precision@5](https://img.shields.io/badge/Precision%405-100.0%25-success?style=for-the-badge)](#-empirical-benchmark-results)
-[![MRR](https://img.shields.io/badge/MRR-0.948-emerald?style=for-the-badge)](#-empirical-benchmark-results)
-[![Tests Passing](https://img.shields.io/badge/Tests-15%2F15%20Passing-brightgreen?style=for-the-badge)](#-test-suite--verification)
+**StandardsFinder** is an AI-powered recommendation engine that converts unstructured procurement specifications into the most applicable **Indian Standards (BIS / IS codes)** ranked by relevance.
 
-> **Problem Statement ID**: SIH26108  
-> **Organization**: Ministry of Consumer Affairs, Food and Public Distribution / Bureau of Indian Standards (BIS) & Government e-Marketplace (GeM)  
-> **Objective**: Production-grade AI recommendation engine that parses free-text procurement tender specifications and automatically recommends applicable **Indian Standards (BIS)** with calibrated confidence scores, matched clause citations, plain-English justifications, and mandatory **Quality Control Order (QCO)** legal compliance alerts.
+Built for **Smart India Hackathon Problem SIH26108** (*Ministry of Consumer Affairs, Food & Public Distribution*), it assists public procurement officers, GeM portal buyers, and industry engineers in ensuring compliance with mandatory Bureau of Indian Standards (BIS) and Quality Control Orders (QCOs).
 
 ---
 
-## 📑 Table of Contents
-1. [Key Capabilities & Innovations](#-key-capabilities--innovations)
-2. [Empirical Benchmark Results](#-empirical-benchmark-results)
-3. [Algorithmic Architecture](#-algorithmic-architecture)
-4. [Mathematical Formulation](#-mathematical-formulation)
-5. [System Components](#-system-components)
-6. [Interactive Web Portal](#-interactive-web-portal)
-7. [REST API Documentation](#-rest-api-documentation)
-8. [Quick Start & Launch Guide](#-quick-start--launch-guide)
-9. [Test Suite & Verification](#-test-suite--verification)
+## ⚡ Tech Stack
+
+- **Backend**: Python 3.11+ / FastAPI / scikit-learn (TF-IDF + Cosine Similarity + Keyword Boosting + Domain Synonym Expansion).
+  - *Ultra-lightweight (< 100MB RAM footprint)*: Built without heavy deep-learning dependencies so it runs reliably on Render's 512MB free tier.
+- **Frontend**: React 19 + Vite + Tailwind CSS + Lucide Icons.
+- **Data**: Curated catalog of 87 realistic Indian Standards across 9 procurement categories (`backend/data/standards.json`).
 
 ---
 
-## 🌟 Key Capabilities & Innovations
-
-* **Multi-Stage Hybrid Search (RRF)**: Blends sparse BM25Okapi keyword retrieval with FAISS dense semantic embeddings (`all-MiniLM-L6-v2`) via Reciprocal Rank Fusion.
-* **Deep Cross-Encoder Re-Ranking**: Neural cross-attention re-ranking via `cross-encoder/ms-marco-MiniLM-L-6-v2` directly scoring (tender query, BIS standard) token interactions.
-* **Calibrated Confidence Scoring**: Converts raw neural logits into a calibrated $[0\%, 100\%]$ match probability with confidence thresholds (High $\ge 70\%$, Medium $48\text{–}69\%$, Low $32\text{–}47\%$, Uncertain $<32\%$).
-* **Explainability & Clause Attribution**: Extracts intersecting technical parameters and maps tenders to exact technical clauses (e.g., *Clause 7 Mechanical Properties*, *Clause 8 Dimensions*).
-* **Quality Control Order (QCO) Regulatory Compliance**: Automatically cross-references ministry notifications and warns procurement officers when ISI certification is legally mandatory on GeM tenders.
-* **Service / Labor Scope Filtering**: Intelligently identifies and rejects service, manpower, and labor contracts (e.g., security guards, drivers) where manufactured product standards do not apply.
-* **Human-in-the-Loop Feedback Loop**: Procurement officers can Accept, Reject, or Override standards directly from the UI. Decisions are recorded in SQLite (`is_recommender.db`) to dynamically boost/calibrate ranking for future tenders.
-* **520+ Real BIS Standards Catalog**: Full coverage across Civil Engineering, Electrotechnical, Mechanical, Chemical, Medical Equipment, Food & Agriculture, Textiles, and IT.
-
----
-
-## 📊 Empirical Benchmark Results
-
-Evaluated across **40 real-world GeM procurement specifications** in [`data/evaluation_dataset.json`](file:///c:/Users/ashwin/Desktop/AI%20recommendation%20engine/data/evaluation_dataset.json) covering civil infrastructure, electrical distribution, fire safety, hospital PPE, mechanical valves, solar energy, and ration foods.
+## 📁 Project Structure
 
 ```
-================================================================================
-FINAL BENCHMARK EVALUATION RESULTS (IS-Recommender v1.0)
-================================================================================
-  * Total Labeled Test Specs  : 40
-  * Precision@1 (Hit Rate@1)  : 92.50% (37 / 40)
-  * Precision@3 (Hit Rate@3)  : 97.50% (39 / 40)
-  * Precision@5 (Hit Rate@5)  : 100.00% (40 / 40)
-  * Mean Reciprocal Rank (MRR): 0.9479
-  * Out-of-Scope Detection   : 100.00% Rejection Accuracy
-================================================================================
-```
-
-| Evaluation Metric | Measured Value | SIH26108 Target | Result |
-| :--- | :---: | :---: | :---: |
-| **Precision@1 (Top-1 Accuracy)** | **92.50%** | $> 85.0\%$ | 🟢 Surpassed |
-| **Precision@3 (Top-3 Accuracy)** | **97.50%** | $> 90.0\%$ | 🟢 Surpassed |
-| **Precision@5 (Top-5 Accuracy)** | **100.00%** | $> 95.0\%$ | 🟢 Surpassed |
-| **Mean Reciprocal Rank (MRR)** | **0.9479** | $> 0.850$ | 🟢 Surpassed |
-| **Out-of-Scope Service Rejection** | **100.00%** | $100\%$ | 🟢 Verified |
-
----
-
-## 🏗️ Algorithmic Architecture
-
-```mermaid
-flowchart TD
-    A["Raw GeM Procurement Specification\n(Free-text / Multiline Schedule)"] --> B{"Eligibility Check\n(Service / Labor Filter)"}
-    B -- "Manpower / Service Contract" --> Z["🛑 OUT_OF_SCOPE Alert\n(Explain non-standard nature)"]
-    B -- "Manufactured Product Tender" --> C["Query Normalization & Tokenization"]
-    
-    C --> D1["Sparse Retrieval\n(BM25Okapi over 520 Standards)"]
-    C --> D2["Dense Semantic Retrieval\n(SentenceTransformers + FAISS Index)"]
-    
-    D1 --> E["Hybrid Fusion\n(Reciprocal Rank Fusion - RRF)"]
-    D2 --> E
-    
-    E --> F["Candidate Pool (Top-20 Standards)"]
-    F --> G["Neural Cross-Encoder Re-ranking\n(ms-marco-MiniLM-L-6-v2)"]
-    
-    G --> H["Confidence Sigmoid Calibration\n(0.0 to 1.0 Probability)"]
-    H --> I["Officer Feedback Dynamic Boost\n(SQLite Historic Boosts & Penalties)"]
-    
-    I --> J["Explainability & Attribution Engine\n- Matched Parameter Keywords\n- Clause Mapping (Clause 7, 8, etc.)\n- Plain-English Justification"]
-    J --> K["QCO Regulatory Check\n(Flag Mandatory ISI Mark on GeM)"]
-    
-    K --> L["Ranked IS Recommendations\n(Output to REST API & React Portal)"]
-```
-
----
-
-## 📐 Mathematical Formulation
-
-### 1. Reciprocal Rank Fusion (RRF)
-Given the candidate sets from dense semantic search ($R_{\text{dense}}$) and sparse BM25 search ($R_{\text{sparse}}$), the unified score for each standard $d$ is computed as:
-$$RRF(d) = w_{\text{dense}} \cdot \frac{1}{k + r_{\text{dense}}(d)} + w_{\text{sparse}} \cdot \frac{1}{k + r_{\text{sparse}}(d)}$$
-where $k = 60$, $w_{\text{dense}} = 0.55$, and $w_{\text{sparse}} = 0.45$.
-
-### 2. Neural Confidence Calibration
-Cross-Encoder logits $s \in (-\infty, +\infty)$ from `ms-marco-MiniLM-L-6-v2` are normalized and calibrated to match probabilities via a temperature-shifted sigmoid:
-$$P(\text{Match} \mid \text{query}, d) = \sigma\left(\frac{s + 3.20}{2.00}\right) = \frac{1}{1 + e^{-\left(\frac{s + 3.20}{2.00}\right)}}$$
-
----
-
-## 📦 System Components
-
-```
-AI recommendation engine/
-├── api/
-│   ├── main.py              # FastAPI service with CORS, lifespan & health checks
-│   ├── routes.py            # API routes (/recommend, /feedback, /standards, /health)
-│   └── schemas.py           # Pydantic request/response schemas
-├── is_recommender/
-│   ├── bm25_search.py       # BM25Okapi lexical retriever
-│   ├── vector_store.py      # FAISS dense index & SentenceTransformer embeddings
-│   ├── hybrid_retriever.py  # Reciprocal Rank Fusion (RRF) coordinator
-│   ├── reranker.py          # Cross-Encoder neural re-ranking
-│   ├── explainability.py    # Clause extraction, keyword matcher & QCO checker
-│   ├── feedback.py          # SQLite feedback logging & dynamic scoring boosts
-│   ├── recommender.py       # Main ISRecommender coordination pipeline
-│   ├── config.py            # Model parameters, thresholds & file paths
-│   └── cli.py               # Interactive CLI interface
+├── backend/
+│   ├── data/
+│   │   └── standards.json       # 87 Indian Standards across 9 categories
+│   ├── main.py                  # FastAPI app & endpoints
+│   ├── recommender.py           # Preprocessing, TF-IDF & keyword-boosting engine
+│   ├── requirements.txt         # Lightweight Python dependencies
+│   ├── render.yaml              # Render deployment configuration
+│   ├── test_recommender.py      # Automated recommendation verification
+│   └── .env.example             # Backend environment template
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx          # React portal for GeM officers & BIS admins
-│   │   ├── App.css          # Modern dark-mode UI styles & responsive components
-│   │   └── index.css        # Design system tokens and typography
-│   ├── vite.config.js       # Vite dev server with /api proxy
-│   └── package.json         # React 19 + Vite 8
-├── data/
-│   ├── bis_standards_catalog.json  # 520+ curated Indian Standards
-│   ├── evaluation_dataset.json     # 40 labeled real GeM tender benchmarks
-│   ├── is_recommender.db           # SQLite feedback audit trail & officer logs
-│   └── indices/
-│       ├── standards_faiss.index   # Precomputed 384-d FAISS index
-│       └── index_metadata.json     # Index hash & standard counts
-├── tests/
-│   ├── test_api.py          # 7 FastAPI integration tests
-│   ├── test_retrieval.py    # 8 retrieval & explainability tests
-│   └── evaluate.py          # 40-tender benchmark evaluation script
-├── run.py                   # Unified launcher (starts backend + frontend + browser)
-└── README.md                # Project documentation
+│   │   ├── App.jsx              # Responsive search UI, results cards & modal
+│   │   ├── index.css            # Tailwind CSS base styles
+│   │   └── main.jsx             # React entry point
+│   ├── index.html               # Semantic HTML & Google fonts
+│   ├── package.json             # React, Vite, Tailwind CSS dependencies
+│   ├── vite.config.js           # Vite configuration & backend proxy
+│   ├── vercel.json              # Vercel SPA routing configuration
+│   └── .env.example             # Frontend environment template
+├── README.md                    # Setup, architecture & deployment guide
+└── .gitignore                   # Python & Node ignore rules
 ```
 
 ---
 
-## 💻 Interactive Web Portal
+## 📊 Standards Coverage (87 Standards across 9 Domains)
 
-The React frontend (`frontend/`) provides three dedicated views designed for public procurement:
-
-1. **Tender Recommender**:
-   - Specification input with quick-load presets (*Fe 500D TMT bars*, *Distribution Transformers*, *ABC Fire Extinguishers*, *3-Ply Face Masks*, *uPVC Pipes*, *Chakki Atta*, and *Security Guard Services*).
-   - Ranked recommendation cards with confidence gauge pills (High 🟢, Medium 🟡, Low 🟠, Uncertain 🔴).
-   - Plain-English justifications and expandable clause drawers.
-   - Quality Control Order (QCO) regulatory banners.
-   - **Procurement Officer Action Buttons**: `✓ Accept Standard`, `✗ Reject Standard`, and `✎ Override / Correct Standard`.
-2. **BIS Standards Catalog Explorer**:
-   - Searchable and filterable catalog over 520+ Indian Standards with technical scope and clause viewer.
-3. **Audit & Coverage Analytics**:
-   - Live KPI cards: Total Standards Indexed, Officer Decisions Logged, Acceptance Rate %.
-   - Full audit log table displaying officer decision history.
+1. **Cement (10)**: IS 8112 (43 Grade OPC), IS 12269 (53 Grade OPC), IS 269 (33/43/53 Grade OPC), IS 1489 Pt 1 & 2 (PPC Fly Ash & Calcined Clay), IS 455 (PSC Slag Cement), IS 8041, IS 12330, IS 3466, IS 6909.
+2. **Steel (10)**: IS 1786 (TMT Deformed Rebars Fe 415/500/500D/550/600), IS 2062 (Structural Steel E250/E350), IS 432 Pt 1 (Mild Steel Bars), IS 2830, IS 1367 (Fasteners), IS 277 (GI Sheets), IS 1161, IS 1079, IS 1239 Pt 1, IS 1875.
+3. **Electrical (11)**: IS 694 (PVC Cables up to 1100V), IS 1180 Pt 1 (Distribution Transformers 11kV/433V), IS/IEC 60898 Pt 1 (MCBs), IS 3854 (Switches), IS 1293 (Plugs/Sockets), IS 16102 Pt 1 (LED Lamps), IS 3043 (Earthing), IS 7098 Pt 1 & 2 (LT/HT XLPE Cables), IS 2026 Pt 1, IS 9857.
+4. **Food & Rations (11)**: IS 1155 (Chakki Atta / Wheat Flour), IS 14543 (Packaged Drinking Water), IS 13428 (Natural Mineral Water), IS 1165 (Milk Powder), IS 515 (Refined Sugar), IS 1005 (Edible Salt), IS 548 Pt 1 (Oils & Fats), IS 4251, IS 15757 (Fortified Atta), IS 16076 (Fortified Oil), IS 1488.
+5. **Textiles (10)**: IS 16289 (3-Ply Surgical Face Masks), IS 17349 (Healthcare Coveralls PPE), IS 15809 (High Visibility Jackets), IS 1969 Pt 1 (Fabric Tensile Strength), IS 2977 (Terry Towels), IS 15852 (Uniform Fabrics), IS 177, IS 1259 (Rexine), IS 16654 (Geotextiles), IS 1390.
+6. **Pipes (9)**: IS 4985 (uPVC Pipes for Potable Water), IS 15778 (CPVC Hot/Cold Water Pipes), IS 8329 (Ductile Iron DI Pipes K7/K9), IS 14333 (HDPE Sewerage Pipes), IS 1239 Pt 2 (Steel Fittings), IS 458 (RCC Spun Pipes), IS 13592 (SWR Drainage Pipes), IS 14846, IS 1536.
+7. **Paints (8)**: IS 154 (Synthetic Enamel Paint), IS 5410 (Cement Paint), IS 15489 (Plastic Emulsion Paint), IS 2074 (Red Oxide Zinc Chrome Primer), IS 101 Pt 1, IS 2932, IS 13183 (PU Coatings), IS 341.
+8. **Packaging (9)**: IS 2771 Pt 1 (Corrugated Fibreboard Boxes), IS 10221 (Anti-Corrosion Packaging VCI), IS 15644 (Wooden Crates), IS 12795 (Milk Film Pouches), IS 14001 (Cement Sacks), IS 14005 (Food Grain Sacks), IS 10146 (Food Contact Plastics), IS 15886, IS 13947.
+9. **Safety Equipment (9)**: IS 2925 (Industrial Safety Helmets), IS 15683 (Portable Fire Extinguishers ABC/CO2), IS 15298 Pt 2 (Steel Toe Safety Footwear), IS 3521 Pt 1 (Full Body Safety Harnesses), IS 8521 Pt 1 (Face Shields), IS 9473 (FFP2 / N95 Particulate Respirators), IS 2573, IS 6994 Pt 1, IS 8808.
 
 ---
 
-## 🔌 REST API Documentation
+## 🚀 Quickstart: Local Setup
 
-FastAPI provides an interactive OpenAPI / Swagger UI at `http://127.0.0.1:8000/docs`.
+### Prerequisites
+- Python 3.10+ installed
+- Node.js 18+ and npm installed
 
-### 1. Recommend Indian Standards
-```http
-POST /api/v1/recommend
-Content-Type: application/json
-
-{
-  "spec_text": "Supply of Fe 500D grade TMT steel bars 12mm dia with minimum 500 N/mm2 proof stress for RCC bridge construction",
-  "top_k": 3
-}
-```
-
-**Response (Summary)**:
-```json
-{
-  "status": "SUCCESS",
-  "is_confident": true,
-  "execution_time_ms": 185.4,
-  "recommendations": [
-    {
-      "rank": 1,
-      "standard_id": "IS 1786:2008",
-      "code": "IS 1786",
-      "title": "High Strength Deformed Steel Bars and Wires for Concrete Reinforcement",
-      "sector": "Civil Engineering",
-      "confidence_score": 0.865,
-      "confidence_pct": 86.5,
-      "confidence_level": "HIGH",
-      "justification": "Primary Indian Standard specifying high strength deformed steel bars (Fe 500D) for concrete reinforcement.",
-      "qco_compliance": {
-        "is_mandatory": true,
-        "notice": "MANDATORY FOR GeM: Covered under Ministry Quality Control Order (QCO) - ISI Certification Mark is legally required."
-      },
-      "matched_clauses": [
-        {
-          "clause_no": "Clause 7",
-          "title": "Mechanical Properties",
-          "text": "Specifies minimum 0.2 percent proof stress of 500.0 N/mm2, minimum tensile strength of 565 N/mm2, and elongation of 16.0 percent for Fe 500D.",
-          "matched_terms": ["proof", "stress", "fe 500d", "tensile"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-### 2. Log Officer Decision & Calibrate
-```http
-POST /api/v1/feedback
-Content-Type: application/json
-
-{
-  "spec_text": "Supply of Fe 500D grade TMT steel bars 12mm",
-  "recommended_standard_id": "IS 1786:2008",
-  "action": "ACCEPT",
-  "officer_notes": "Verified against bridge tender schedule"
-}
-```
-
-### 3. Standards Catalog
-```http
-GET /api/v1/standards?search=transformer&sector=Electrotechnical&page=1&page_size=10
-```
-
-### 4. Health Check
-```http
-GET /api/v1/health
-```
-
----
-
-## 🚀 Quick Start & Local Setup Guide
-
-### 1. Unified One-Click Launcher (Recommended)
-Launches the FastAPI backend, boots the Vite frontend, checks health, and opens your browser:
-```powershell
-python run.py
-```
-* **Web Portal**: [http://localhost:5173](http://localhost:5173)
-* **Swagger API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-* **Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-
-### 2. Manual Step-by-Step Local Setup
-
-**Backend (FastAPI):**
-```powershell
+### 1. Run the Backend
+```bash
+cd backend
 pip install -r requirements.txt
-uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+- API will be live at: `http://localhost:8000`
+- Interactive Swagger UI: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/api/health`
 
-**Frontend (React + Vite):**
-```powershell
+### 2. Run the Frontend
+```bash
 cd frontend
 npm install
 npm run dev
 ```
+- Open `http://localhost:5173` in your browser.
+- Vite automatically proxies `/api` requests to `http://localhost:8000`.
 
-### 3. Interactive Terminal CLI
-```powershell
-# Interactive menu with real presets
-python -m is_recommender.cli --interactive
+---
 
-# Direct single tender query
-python -m is_recommender.cli --query "500 kVA outdoor copper distribution transformer"
+## 🔌 API Endpoints
+
+### 1. Recommend Standards
+- **Endpoint**: `POST /api/recommend`
+- **Request Body**:
+```json
+{
+  "query": "Portland cement for residential construction, 43 grade",
+  "top_k": 3
+}
+```
+- **Response**:
+```json
+[
+  {
+    "is_code": "IS 8112:2013",
+    "title": "43 Grade Ordinary Portland Cement - Specification",
+    "category": "Cement",
+    "score": 100.0,
+    "matched_keywords": [
+      "cement",
+      "opc",
+      "43 grade",
+      "ordinary portland cement",
+      "compressive strength",
+      "residential construction"
+    ],
+    "reason": "High confidence match in Cement category on 'cement', 'opc', '43 grade'. Formulated specifically for requirements defined in IS 8112:2013."
+  }
+]
+```
+
+### 2. Browse Standards Catalog
+- **Endpoint**: `GET /api/standards?page=1&page_size=10&category=Cement&search=opc`
+- **Response**:
+```json
+{
+  "total": 10,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 1,
+  "standards": [ ... ]
+}
+```
+
+### 3. Health Check
+- **Endpoint**: `GET /api/health`
+- **Response**:
+```json
+{
+  "status": "ok",
+  "standards_count": 87,
+  "version": "1.0.0"
+}
 ```
 
 ---
 
-## 🌐 Production Cloud Deployment Guide
+## 🌐 Deployment Guide
 
-Deploy the project to the internet for free using **Vercel** (Frontend) and **Render** or **Hugging Face Spaces** (Backend).
+### A. Deploy Backend to Render (Free Tier 512MB RAM)
 
-### Deployment Order:
-1. **Deploy Backend first** to obtain your public backend API URL (e.g. `https://is-recommender-api.onrender.com` or `https://username-is-recommender.hf.space`).
-2. **Deploy Frontend to Vercel** setting `VITE_API_URL` to the backend URL.
-3. **Update `ALLOWED_ORIGINS`** on the backend with your Vercel frontend domain (e.g. `https://your-portal.vercel.app`).
+1. Push your repository to GitHub.
+2. In [Render Dashboard](https://dashboard.render.com), click **New +** -> **Web Service**.
+3. Connect your GitHub repository.
+4. Set the following fields:
+   - **Root Directory**: `backend`
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install --upgrade pip && pip install -r requirements.txt`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Plan**: Free
+5. Under **Environment Variables**, add:
+   - `ALLOWED_ORIGINS`: `*` (or your frontend Vercel URL)
+6. Click **Create Web Service**. Your backend URL will be e.g. `https://standardsfinder-backend.onrender.com`.
 
----
-
-### Step 1: Deploy Backend on Render (100% Free Tier Ready)
-
-#### Method 1: Instant Blueprint Deployment (Recommended)
-1. Push your repository to GitHub (`git add . && git commit -m "fix(deploy): prepare render deployment" && git push origin main`).
-2. Open the [Render Dashboard](https://dashboard.render.com).
-3. Click **New +** -> **Blueprint**.
-4. Connect your `IS-recommender` GitHub repository.
-5. Render reads `render.yaml` automatically and configures all build commands, CPU PyTorch wheels, health checks (`/health`), and memory optimizations.
-6. Click **Apply** — Render deploys your backend live!
-
-#### Method 2: Manual Web Service
-1. In [Render Dashboard](https://dashboard.render.com), click **New +** -> **Web Service**.
-2. Select your GitHub repository.
-3. Configure settings:
-   * **Name**: `is-recommender-api`
-   * **Region**: `Oregon` (or any region)
-   * **Branch**: `main`
-   * **Runtime**: `Python 3`
-   * **Build Command**: `pip install --upgrade pip && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements.txt`
-   * **Start Command**: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
-   * **Plan**: `Free` ($0/mo)
-4. Add Environment Variables:
-   | Variable | Value | Description |
-   | :--- | :--- | :--- |
-   | `PORT` | `10000` | Port assigned by Render |
-   | `PYTHON_VERSION` | `3.11.9` | Matches `.python-version` runtime |
-   | `ALLOWED_ORIGINS` | `*` | Or comma-separated frontend URL(s) |
-   | `OMP_NUM_THREADS` | `1` | Restricts OpenMP thread allocations for 512MB RAM |
-   | `MKL_NUM_THREADS` | `1` | Restricts MKL BLAS threads |
-   | `OPENBLAS_NUM_THREADS` | `1` | Restricts OpenBLAS threads |
-5. Set **Health Check Path** to `/health`.
-6. Click **Deploy Web Service** and copy your live backend URL (e.g. `https://is-recommender-api.onrender.com`).
-> **Note on Render Free Tier**: Instances spin down after 15 minutes of inactivity. The first wake-up request takes ~45–50 seconds to warm up the embedding and cross-encoder models into memory. After warming up, requests respond in under 100ms.
+*(Alternatively, use `backend/render.yaml` with Render Blueprints).*
 
 ---
 
-### Step 1 (Alternative): Deploy Backend 100% Free on Hugging Face Spaces (16 GB RAM)
-> **Why Hugging Face Spaces?** Sentence-transformers + Cross-encoder + FAISS require ~1.4 GB RAM. Hugging Face Spaces provides **16 GB RAM for free**, preventing out-of-memory errors.
+### B. Deploy Frontend to Vercel
 
-1. Go to [Hugging Face Spaces](https://huggingface.co/spaces) and click **Create new Space**.
-2. Space Name: `is-recommender-api`, License: `mit`, Space SDK: **Docker** (Blank).
-3. Push your repository files (the provided `Dockerfile` is automatically built).
-4. In Space Settings -> Variables, add:
-   * `ALLOWED_ORIGINS`: `*` or `https://your-portal.vercel.app`
-5. Your public API endpoint will be: `https://<username>-is-recommender-api.hf.space`.
-
----
-
-### Step 2: Deploy Frontend on Vercel
-1. Sign in to [Vercel](https://vercel.com) and click **Add New...** -> **Project**.
-2. Import your GitHub repository.
-3. In Project Configuration:
-   * **Root Directory**: `frontend` (or leave root if using root `vercel.json`)
-   * **Framework Preset**: `Vite`
-   * **Build Command**: `npm run build`
-   * **Output Directory**: `dist`
-4. Add Environment Variable:
-   | Variable | Example Value | Description |
-   | :--- | :--- | :--- |
-   | `VITE_API_URL` | `https://is-recommender-api.onrender.com` | Your public backend URL without trailing slash |
-5. Click **Deploy**. Vercel will build and assign your production domain.
+1. In [Vercel Dashboard](https://vercel.com), click **Add New...** -> **Project**.
+2. Select your repository.
+3. Configure the project:
+   - **Root Directory**: `frontend`
+   - **Framework Preset**: `Vite`
+4. Under **Environment Variables**, add:
+   - `VITE_API_URL`: Your Render backend URL (e.g. `https://standardsfinder-backend.onrender.com`)
+5. Click **Deploy**. Vercel will build and serve your app globally.
 
 ---
 
-### Step 3: Verify the Deployed System
-1. Open your Vercel URL in your browser.
-2. Ensure the top status indicator reads: `API Connected • 520 Standards Loaded`.
-3. Click the **Civil: Fe 500D TMT Rebars** preset.
-4. Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> (or click **Recommend Applicable Standards**).
-5. Verify that **IS 1786:2008** appears as Recommendation #1 with a calibrated confidence bar and matched clauses.
+## 🧪 Sample Verification Queries
+
+| Query | Expected Standard | Category |
+|---|---|---|
+| `Portland cement for residential construction, 43 grade` | **IS 8112:2013** | Cement |
+| `Supply of Fe 500D grade TMT deformed steel bars 12mm` | **IS 1786:2008** | Steel |
+| `Portable 6 kg capacity stored pressure ABC dry powder fire extinguisher` | **IS 15683:2018** | Safety Equipment |
+| `Unplasticized PVC pipes for potable drinking water supply` | **IS 4985:2021** | Pipes |
+| `Disposable 3-ply surgical face masks with meltblown filter layer` | **IS 16289:2014** | Textiles |
 
 ---
 
-## 🧪 Test Suite & Verification
-
-Run the full automated pytest suite (15 unit and integration tests):
-```powershell
-pytest
-```
-*Output: `15 passed (100% pass rate)`*
-
-Run the 40-tender empirical benchmark:
-```powershell
-python tests/evaluate.py
-```
-*Output: `Precision@1: 92.5%, Precision@3: 97.5%, Precision@5: 100.0%, MRR: 0.9479`*
-
----
-
-## 👥 Authors & Acknowledgments
-* **Problem Statement ID**: SIH26108
-* **Entities**: Bureau of Indian Standards (BIS) & Government e-Marketplace (GeM)
-* **License**: MIT
+## ⚖️ License
+Released under the MIT License for Smart India Hackathon (SIH26108).

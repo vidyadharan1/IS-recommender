@@ -1,1423 +1,717 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Target,
+  Search,
   BookOpen,
-  BarChart3,
-  FileText,
-  Zap,
-  SlidersHorizontal,
-  Trash2,
-  Sparkles,
-  Sun,
-  Moon,
-  Award,
-  Scale,
-  HelpCircle,
-  CheckCircle2,
   Copy,
   Check,
-  X,
-  Edit3,
-  AlertOctagon,
-  ChevronDown,
-  ChevronUp,
-  Package,
-  Ruler,
-  Wrench,
-  Clock,
+  AlertCircle,
+  Sparkles,
+  Layers,
+  ArrowRight,
   ShieldCheck,
-  Info,
-  Layers
+  Building2,
+  RefreshCw,
+  ExternalLink,
+  ChevronRight,
+  Database,
+  X
 } from 'lucide-react';
-import './App.css';
-import benchmarkMetrics from './data/benchmark_metrics.json';
 
-// Production API endpoint resolution (e.g., on Vercel)
-// Dynamically reads import.meta.env.VITE_API_URL.
-// In local development, an empty VITE_API_URL falls back to '/api/v1' which is proxied by Vite to http://127.0.0.1:8000.
-const getApiBase = () => {
-  const raw = import.meta.env.VITE_API_URL;
-  if (!raw || !raw.trim()) {
-    return '/api/v1';
-  }
-  const clean = raw.trim().replace(/\/+$/, '');
-  return clean.endsWith('/api/v1') ? clean : `${clean}/api/v1`;
-};
-const API_BASE = getApiBase();
+// Read API base URL from import.meta.env.VITE_API_URL with sensible local fallback
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
-const SAMPLE_SPECS = [
+const EXAMPLE_QUERIES = [
   {
-    category: 'Civil',
-    label: 'Fe 500D TMT Rebars',
-    expected: 'IS 1786',
-    text: 'Supply of Fe 500D grade TMT thermo-mechanically treated deformed steel bars 12mm and 16mm diameter with minimum 500 N/mm2 proof stress, 565 N/mm2 tensile strength, and 16% elongation for RCC bridge construction.'
+    category: 'Cement',
+    icon: '🏗️',
+    title: '43 Grade Portland Cement',
+    text: 'Portland cement for residential construction, 43 grade'
   },
   {
-    category: 'Electrical',
-    label: '500 kVA Transformer',
-    expected: 'IS 1180 Pt 1',
-    text: 'Procurement of 500 kVA, 11 kV / 433 V, 3-phase, 50 Hz, outdoor type oil immersed copper wound distribution transformer conforming to BEE Star 2 energy efficiency loss levels.'
+    category: 'Steel',
+    icon: '🔩',
+    title: 'Fe 500D TMT Steel Rebars',
+    text: 'Supply of Fe 500D grade TMT deformed steel bars 12mm and 16mm diameter for RCC structure'
   },
   {
-    category: 'Fire Safety',
-    label: '6kg ABC Fire Extinguisher',
-    expected: 'IS 15683',
-    text: 'Portable 6 kg capacity stored pressure ABC dry powder fire extinguisher containing monoammonium phosphate 50% min, with pressure gauge, squeeze grip valve, and fire rating 3A 89B.'
+    category: 'Safety',
+    icon: '🧯',
+    title: 'ABC Fire Extinguisher',
+    text: 'Portable 6 kg capacity stored pressure ABC dry powder fire extinguisher'
   },
   {
-    category: 'Medical / PPE',
-    label: '3-Ply Surgical Masks',
-    expected: 'IS 16289',
-    text: 'Disposable 3-ply surgical face masks with meltblown filter layer, bacterial filtration efficiency (BFE) > 98%, differential pressure < 29.4 Pa/cm2, and fluid splash resistance at 120 mmHg.'
+    category: 'Pipes',
+    icon: '🚰',
+    title: 'uPVC Potable Water Pipes',
+    text: 'Unplasticized PVC pipes for potable drinking water supply Class 3'
   },
   {
-    category: 'Water / Pipes',
-    label: '110mm uPVC Potable Pipes',
-    expected: 'IS 4985',
-    text: 'Supply of unplasticized PVC (uPVC) pipes Class 3 (0.6 MPa) 110mm diameter for potable drinking water supply distribution with lead-free formulation and hydrostatic pressure testing.'
-  },
-  {
-    category: 'Food / Rations',
-    label: 'Chakki Atta (Whole Wheat)',
-    expected: 'IS 1155',
-    text: 'Supply of whole wheat flour (Chakki Atta) in 50 kg bags for government hostel mess: moisture content max 14%, total ash max 2.0%, gluten min 6.0%, free from insect infestation.'
-  },
-  {
-    category: 'Service Contract',
-    label: 'Security Guard Hiring',
-    expected: 'OUT OF SCOPE',
-    isOutOfScope: true,
-    text: 'Hiring of 10 security guards and 2 supervisors for round-the-clock 8-hour shift security service at government office complex.'
+    category: 'Textiles',
+    icon: '😷',
+    title: '3-Ply Surgical Masks',
+    text: 'Disposable 3-ply surgical face masks with meltblown filter layer'
   }
 ];
 
-// Lightweight NLP Specification Extractor
-function extractTenderSpecifications(text) {
-  if (!text || text.trim().length < 10) return null;
-
-  const specs = {
-    materials: [],
-    dimensions: [],
-    mechanical: [],
-    electrical: [],
-    application: []
-  };
-
-  const lower = text.toLowerCase();
-
-  // 1. Materials & Grades
-  const materialPatterns = [
-    /\b(fe\s*\d{3}[a-z]?)\b/gi,
-    /\b(tmt|thermo[- ]mechanically\s+treated)\b/gi,
-    /\b(upvc|pvc[- ]u|unplasticized\s+pvc)\b/gi,
-    /\b(chakki\s+atta|whole\s+wheat\s+flour)\b/gi,
-    /\b(abc\s+dry\s+powder|monoammonium\s+phosphate)\b/gi,
-    /\b(3[- ]ply\s+surgical|meltblown)\b/gi,
-    /\b(copper\s+wound|oil\s+immersed)\b/gi,
-    /\b(class\s+\d+(\.\d+)?)\b/gi
-  ];
-  materialPatterns.forEach(pattern => {
-    const matches = text.match(pattern);
-    if (matches) {
-      matches.forEach(m => {
-        const val = m.trim();
-        if (!specs.materials.includes(val)) specs.materials.push(val);
-      });
-    }
-  });
-
-  // 2. Dimensions & Capacities
-  const dimensionPatterns = [
-    /\b(\d+(\.\d+)?\s*(mm|cm|meter|m)\b(\s*(dia|diameter))?)/gi,
-    /\b(\d+\s*kg\b(\s*capacity)?)/gi,
-    /\b(\d+\s*kva)\b/gi,
-    /\b(\d+\s*kg\s*bags)\b/gi
-  ];
-  dimensionPatterns.forEach(pattern => {
-    const matches = text.match(pattern);
-    if (matches) {
-      matches.forEach(m => {
-        const val = m.trim();
-        if (!specs.dimensions.includes(val)) specs.dimensions.push(val);
-      });
-    }
-  });
-
-  // 3. Mechanical & Quality Parameters
-  const mechanicalPatterns = [
-    /\b(\d+(\.\d+)?\s*N\/mm2\s*(proof\s*stress|tensile\s*strength)?)/gi,
-    /\b(\d+%\s*elongation)\b/gi,
-    /\b(bfe\s*[><=]\s*\d+%?)/gi,
-    /\b(moisture\s*content\s*max\s*\d+%?)/gi,
-    /\b(hydrostatic\s*pressure\s*testing)\b/gi,
-    /\b(rating\s*\d+[a-z]\s*\d+[a-z]?)/gi
-  ];
-  mechanicalPatterns.forEach(pattern => {
-    const matches = text.match(pattern);
-    if (matches) {
-      matches.forEach(m => {
-        const val = m.trim();
-        if (!specs.mechanical.includes(val)) specs.mechanical.push(val);
-      });
-    }
-  });
-
-  // 4. Electrical & Energy Ratings
-  const electricalPatterns = [
-    /\b(\d+\s*kv\s*\/\s*\d+\s*v)\b/gi,
-    /\b(3[- ]phase\b|\b50\s*hz)\b/gi,
-    /\b(bee\s*star\s*\d+)\b/gi
-  ];
-  electricalPatterns.forEach(pattern => {
-    const matches = text.match(pattern);
-    if (matches) {
-      matches.forEach(m => {
-        const val = m.trim();
-        if (!specs.electrical.includes(val)) specs.electrical.push(val);
-      });
-    }
-  });
-
-  // 5. Target Application / Sector Context
-  if (lower.includes('bridge') || lower.includes('rcc') || lower.includes('construction')) {
-    specs.application.push('RCC Bridge & Civil Infrastructure');
-  }
-  if (lower.includes('potable') || lower.includes('drinking water')) {
-    specs.application.push('Potable Water Distribution');
-  }
-  if (lower.includes('distribution transformer') || lower.includes('substation')) {
-    specs.application.push('Power Distribution Grid');
-  }
-  if (lower.includes('hostel mess') || lower.includes('rations') || lower.includes('flour')) {
-    specs.application.push('Institutional Food Supply');
-  }
-  if (lower.includes('security guard') || lower.includes('manpower') || lower.includes('hiring')) {
-    specs.application.push('Manpower / Guard Services (Out of Scope)');
-  }
-
-  const totalCount =
-    specs.materials.length +
-    specs.dimensions.length +
-    specs.mechanical.length +
-    specs.electrical.length +
-    specs.application.length;
-
-  return totalCount > 0 ? { ...specs, totalCount } : null;
-}
+const CATEGORY_COLORS = {
+  Cement: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  Steel: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  Electrical: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  Food: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  Textiles: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
+  Pipes: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+  Paints: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
+  Packaging: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+  'Safety Equipment': 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+};
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('recommender'); // 'recommender' | 'catalog' | 'analytics'
-  const [theme, setTheme] = useState(() => localStorage.getItem('is_recommender_theme') || 'dark');
-  const [systemHealth, setSystemHealth] = useState(null);
-  
-  // Real measured latency & benchmark data
-  const [measuredLatency, setMeasuredLatency] = useState(benchmarkMetrics.benchmark_avg_latency_ms);
-  const [isLatencyMeasured, setIsLatencyMeasured] = useState(false);
-
-  // Recommender State
-  const [specText, setSpecText] = useState(SAMPLE_SPECS[0].text);
+  const [query, setQuery] = useState('');
   const [topK, setTopK] = useState(5);
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [errorMsg, setErrorMsg] = useState(null);
-  const [expandedClauses, setExpandedClauses] = useState({});
-  const [expandedWhy, setExpandedWhy] = useState({}); // { [standardId]: boolean }
-  const [feedbackState, setFeedbackState] = useState({});
-  const [copiedId, setCopiedId] = useState(null);
-  
-  // Override Modal State
-  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
-  const [overrideTarget, setOverrideTarget] = useState(null);
-  const [correctStandardId, setCorrectStandardId] = useState('');
-  const [officerNotes, setOfficerNotes] = useState('');
+  const [error, setError] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const [backendHealth, setBackendHealth] = useState({ online: false, count: 0 });
 
-  // Catalog State
-  const [catalogList, setCatalogList] = useState([]);
-  const [catalogTotal, setCatalogTotal] = useState(0);
+  // Catalog Browser Modal state
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [catalogStandards, setCatalogStandards] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogCategory, setCatalogCategory] = useState('All');
   const [catalogSearch, setCatalogSearch] = useState('');
-  const [catalogSector, setCatalogSector] = useState('');
   const [catalogPage, setCatalogPage] = useState(1);
-  const [selectedStandard, setSelectedStandard] = useState(null);
+  const [catalogTotal, setCatalogTotal] = useState(0);
 
-  // Analytics State
-  const [analyticsData, setAnalyticsData] = useState(null);
-
-  // Real-time extracted specs from input
-  const detectedSpecs = useMemo(() => extractTenderSpecifications(specText), [specText]);
-
-  // Synchronize theme with DOM attribute and localStorage
+  // Check health on mount
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('is_recommender_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
-  const checkHealth = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/health`);
-      if (res.ok) {
-        const data = await res.json();
-        setSystemHealth(data);
-      } else {
-        setSystemHealth(null);
-      }
-    } catch {
-      setSystemHealth(null);
-    }
-  };
-
-  const fetchCatalog = async () => {
-    try {
-      const params = new URLSearchParams({
-        page: catalogPage.toString(),
-        page_size: '15'
-      });
-      if (catalogSearch) params.append('search', catalogSearch);
-      if (catalogSector) params.append('sector', catalogSector);
-
-      const res = await fetch(`${API_BASE}/standards?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCatalogList(data.standards || []);
-        setCatalogTotal(data.total_count || 0);
-      }
-    } catch (err) {
-      console.error('Catalog fetch error:', err);
-    }
-  };
-
-  const fetchAnalytics = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/admin/coverage-gaps`);
-      if (res.ok) {
-        const data = await res.json();
-        setAnalyticsData(data);
-      }
-    } catch (err) {
-      console.error('Analytics fetch error:', err);
-    }
-  };
-
-  // Poll health on mount
-  useEffect(() => {
-    checkHealth();
-    const interval = setInterval(checkHealth, 15000);
-    return () => clearInterval(interval);
+    fetchHealth();
   }, []);
 
-  // Fetch catalog or analytics when activeTab changes
-  useEffect(() => {
-    if (activeTab === 'catalog') {
-      fetchCatalog();
-    } else if (activeTab === 'analytics') {
-      fetchAnalytics();
+  const fetchHealth = async () => {
+    try {
+      const url = `${API_BASE_URL}/api/health`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setBackendHealth({ online: true, count: data.standards_count });
+      } else {
+        setBackendHealth({ online: false, count: 0 });
+      }
+    } catch {
+      setBackendHealth({ online: false, count: 0 });
     }
-  }, [activeTab, catalogSearch, catalogSector, catalogPage]);
+  };
 
-  const handleRecommend = async () => {
-    if (!specText.trim() || loading) return;
+  const handleRecommend = async (overrideQuery) => {
+    const textToSearch = (overrideQuery ?? query).trim();
+    if (!textToSearch) {
+      setError('Please enter a procurement specification before searching.');
+      return;
+    }
+
     setLoading(true);
-    setErrorMsg(null);
-    setResult(null);
-    setFeedbackState({});
-
-    const startTime = performance.now();
+    setError(null);
+    setHasSearched(true);
 
     try {
-      const res = await fetch(`${API_BASE}/recommend`, {
+      const url = `${API_BASE_URL}/api/recommend`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spec_text: specText, top_k: parseInt(topK, 10) })
+        body: JSON.stringify({ query: textToSearch, top_k: Number(topK) }),
       });
 
-      const roundTripMs = Math.round(performance.now() - startTime);
-
       if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Server returned error status ${res.status}`);
       }
-      const data = await res.json();
-      setResult(data);
-      setMeasuredLatency(data.execution_time_ms || roundTripMs);
-      setIsLatencyMeasured(true);
 
-      // Default expand "Why this standard" for the top recommendation
-      if (data.recommendations && data.recommendations.length > 0) {
-        setExpandedWhy({ [data.recommendations[0].standard_id]: true });
-      }
+      const data = await res.json();
+      setResults(data);
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to reach recommendation engine. Ensure API is running.');
+      setError(err.message || 'Failed to connect to recommendation server.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFeedback = async (standardId, action, correctedId = null, notes = '') => {
+  const copyToClipboard = (isCode) => {
+    navigator.clipboard.writeText(isCode);
+    setCopiedCode(isCode);
+    setTimeout(() => {
+      setCopiedCode((curr) => (curr === isCode ? null : curr));
+    }, 2000);
+  };
+
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleRecommend();
+    }
+  };
+
+  // Fetch catalog when modal opens or filter changes
+  useEffect(() => {
+    if (showCatalog) {
+      fetchCatalog(catalogPage, catalogCategory, catalogSearch);
+    }
+  }, [showCatalog, catalogPage, catalogCategory]);
+
+  const fetchCatalog = async (page = 1, category = 'All', search = '') => {
+    setCatalogLoading(true);
     try {
-      const payload = {
-        spec_text: specText,
-        recommended_standard_id: standardId,
-        action: action,
-        corrected_standard_id: correctedId,
-        officer_notes: notes || `Recorded by procurement officer via GeM portal`
-      };
-
-      const res = await fetch(`${API_BASE}/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: '8',
       });
+      if (category && category !== 'All') {
+        params.append('category', category);
+      }
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
 
+      const url = `${API_BASE_URL}/api/standards?${params.toString()}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setFeedbackState(prev => ({
-          ...prev,
-          [standardId]: { action, logId: data.log_id, correctedId }
-        }));
+        setCatalogStandards(data.standards || []);
+        setCatalogTotal(data.total || 0);
       }
     } catch (err) {
-      console.error('Feedback error:', err);
+      console.error('Catalog fetch error:', err);
+    } finally {
+      setCatalogLoading(false);
     }
   };
 
-  const handleCopyCode = (id) => {
-    navigator.clipboard.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 1800);
-  };
-
-  const openOverrideModal = (standard) => {
-    setOverrideTarget(standard);
-    setCorrectStandardId('');
-    setOfficerNotes('');
-    setOverrideModalOpen(true);
-  };
-
-  const submitOverride = () => {
-    if (!correctStandardId.trim() || !overrideTarget) return;
-    handleFeedback(overrideTarget.standard_id, 'CORRECT', correctStandardId.trim(), officerNotes);
-    setOverrideModalOpen(false);
-  };
-
-  const toggleClauses = (id) => {
-    setExpandedClauses(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const toggleWhy = (id) => {
-    setExpandedWhy(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const getConfidenceLevelClass = (level) => {
-    switch (level) {
-      case 'HIGH': return 'high';
-      case 'MEDIUM': return 'medium';
-      case 'LOW': return 'low';
-      default: return 'uncertain';
-    }
+  const handleCatalogSearchSubmit = (e) => {
+    e.preventDefault();
+    setCatalogPage(1);
+    fetchCatalog(1, catalogCategory, catalogSearch);
   };
 
   return (
-    <div className="app-wrapper">
-      {/* Top Header Bar with Stats Strip & Theme Toggle */}
-      <header className="portal-header">
-        <div className="header-inner">
-          <div className="brand-section">
-            <div className="brand-emblem">
-              <div className="brand-emblem-inner">IS</div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      {/* Background ambient lighting */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/3 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Navigation Header */}
+      <header className="relative z-10 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0">
+        <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <ShieldCheck className="w-6 h-6 text-white" />
             </div>
-            <div className="brand-text">
-              <h1>
-                IS-Recommender <span className="highlight">BIS & GeM Portal</span>
-              </h1>
-              <p>AI Recommendation System for Indian Standards in Public Procurement</p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                  StandardsFinder
+                </span>
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  SIH26108
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 hidden sm:block">
+                Bureau of Indian Standards (BIS) Recommendation Engine
+              </p>
             </div>
           </div>
 
-          <div className="header-right">
-            <div className="header-stats-strip">
-              <span className="stat-chip has-tooltip">
-                <Clock size={14} style={{ color: 'var(--accent-cyan)' }} />
-                <span>Latency:</span>
-                <strong>{Math.round(measuredLatency)}ms</strong>
-                <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>
-                  {isLatencyMeasured ? '(live)' : '(avg)'}
-                </span>
-                <span className="tooltip-box">
-                  {isLatencyMeasured
-                    ? `Live query round-trip: ${measuredLatency} ms`
-                    : `Benchmark average query latency across 40 real GeM tenders`}
-                </span>
-              </span>
-
-              <span className="stat-chip benchmark has-tooltip">
-                <Target size={14} style={{ color: 'var(--accent-cyan)' }} />
-                <span>Top-3 Accuracy:</span>
-                <strong>{benchmarkMetrics.top3_accuracy}%</strong>
-                <span className="tooltip-box">
-                  Evaluated on {benchmarkMetrics.total_tenders} real GeM tenders (Top-3 Hit Rate: {benchmarkMetrics.top3_accuracy}%, Top-1: {benchmarkMetrics.top1_accuracy}%, MRR: {benchmarkMetrics.mrr})
-                </span>
-              </span>
-
-              <span className="sih-badge">SIH 26108</span>
-            </div>
-
-            <div className={`status-indicator ${systemHealth ? '' : 'offline'}`}>
-              <span className="status-dot"></span>
-              <span>
-                {systemHealth
-                  ? `API Connected • ${systemHealth.standards_count} Standards Loaded`
-                  : 'Connecting to Backend...'}
-              </span>
-            </div>
-
-            {/* Light / Dark Theme Toggle Button */}
+          <div className="flex items-center gap-3">
             <button
-              type="button"
-              className="theme-toggle-btn"
-              onClick={toggleTheme}
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`}
-              aria-label="Toggle theme"
+              onClick={() => setShowCatalog(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+              title="View full standards dataset"
             >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              <Database className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Browse Catalog</span>
             </button>
+
+            {/* Health pill */}
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                backendHealth.online
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+              }`}
+              title={
+                backendHealth.online
+                  ? `Backend active (${backendHealth.count} standards indexed)`
+                  : 'Backend offline or connecting...'
+              }
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  backendHealth.online ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                }`}
+              ></span>
+              <span className="hidden sm:inline">
+                {backendHealth.online ? `${backendHealth.count} Standards` : 'Offline'}
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="main-container">
-        {/* Navigation Tabs with Lucide Icons */}
-        <nav className="nav-tabs">
-          <button
-            className={`tab-btn ${activeTab === 'recommender' ? 'active' : ''}`}
-            onClick={() => setActiveTab('recommender')}
-          >
-            <Target size={17} />
-            <span>Tender Recommender</span>
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
-            onClick={() => setActiveTab('catalog')}
-          >
-            <BookOpen size={17} />
-            <span>BIS Standards Catalog (500+)</span>
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            <BarChart3 size={17} />
-            <span>Audit & Coverage Analytics</span>
-          </button>
-        </nav>
+      {/* Main Content Area */}
+      <main className="relative z-10 flex-1 max-w-5xl mx-auto w-full px-4 py-8 flex flex-col gap-8">
+        {/* Hero Section */}
+        <section className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium text-slate-300">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Ministry of Consumer Affairs, Food & Public Distribution</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white">
+            Procurement to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400">Indian Standards</span> in Seconds
+          </h1>
+          <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto">
+            Input unstructured procurement specifications, RFPs, or tender requirements. Get accurately ranked BIS / IS codes powered by TF-IDF similarity and keyword boosting.
+          </p>
+        </section>
 
-        {/* Tab 1: Tender Recommender */}
-        {activeTab === 'recommender' && (
-          <section>
-            {/* Input Card */}
-            <div className="input-card">
-              <div className="input-card-header">
-                <div className="input-title">
-                  <h2>
-                    <FileText size={22} style={{ color: 'var(--accent-cyan)' }} />
-                    <span>Analyze Tender Specification</span>
-                  </h2>
-                  <p>Paste raw, free-text procurement clauses or select a realistic GeM sample tender below.</p>
-                </div>
-              </div>
-
-              {/* Quick Test Presets (Single Row with Fade Edges) */}
-              <div className="preset-bar">
-                <div className="preset-label">
-                  <Zap size={14} style={{ color: 'var(--accent-cyan)' }} />
-                  <span>Quick Test Presets (Real GeM Tenders):</span>
-                </div>
-                <div className="preset-scroll-wrapper">
-                  <div className="preset-scroll-track">
-                    {SAMPLE_SPECS.map((sample, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`preset-chip ${sample.isOutOfScope ? 'out-of-scope' : ''} ${
-                          specText === sample.text ? 'active' : ''
-                        }`}
-                        onClick={() => {
-                          setSpecText(sample.text);
-                          setResult(null);
-                          setFeedbackState({});
-                        }}
-                      >
-                        <span className="chip-cat">{sample.category}:</span>
-                        <strong>{sample.label}</strong>
-                        <span className="chip-expected">({sample.expected})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Textarea with Indigo Focus Glow & Ctrl+Enter Listener */}
-              <div className="textarea-container">
-                <textarea
-                  className="tender-textarea"
-                  value={specText}
-                  onChange={(e) => setSpecText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                      e.preventDefault();
-                      handleRecommend();
-                    }
-                  }}
-                  placeholder="e.g. Supply of Fe 500D grade TMT steel bars 12mm dia with minimum proof stress 500 N/mm2..."
-                  rows={4}
-                />
-                <div className="textarea-footer">
-                  <span>{specText.length} characters</span>
-                  <span>Supports multiline tender schedule text • Press Ctrl + Enter</span>
-                </div>
-              </div>
-
-              {/* Actions & Parameters */}
-              <div className="input-actions">
-                <div className="controls-left">
-                  <div className="k-select-wrapper">
-                    <SlidersHorizontal size={15} style={{ color: 'var(--text-muted)' }} />
-                    <span>Rank Top-K:</span>
-                    <select
-                      className="k-select"
-                      value={topK}
-                      onChange={(e) => setTopK(e.target.value)}
-                    >
-                      <option value="3">Top 3 Standards</option>
-                      <option value="5">Top 5 Standards</option>
-                      <option value="10">Top 10 Standards</option>
-                    </select>
-                  </div>
-                  {specText && (
-                    <button
-                      type="button"
-                      className="clear-btn"
-                      onClick={() => {
-                        setSpecText('');
-                        setResult(null);
-                      }}
-                      title="Clear Input"
-                    >
-                      <Trash2 size={14} />
-                      <span>Clear Input</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="submit-group">
-                  <button
-                    type="button"
-                    className="submit-btn"
-                    onClick={handleRecommend}
-                    disabled={loading || !specText.trim()}
-                  >
-                    {loading ? (
-                      <>
-                        <div className="spinner"></div>
-                        <span>Analyzing & Reranking...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={17} />
-                        <span>Recommend Applicable Standards</span>
-                      </>
-                    )}
-                  </button>
-                  <div className="shortcut-hint">
-                    <span>Press</span> <kbd>Ctrl</kbd> + <kbd>Enter</kbd> <span>to analyze</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Real NLP Detected Specifications Panel */}
-              {detectedSpecs && (
-                <div className="detected-specs-panel">
-                  <div className="specs-panel-header">
-                    <div className="specs-panel-title">
-                      <Layers size={17} style={{ color: 'var(--accent-cyan)' }} />
-                      <span>Detected Specifications (NLP Extracted Parameters)</span>
-                    </div>
-                    <span className="specs-badge-counter">
-                      {detectedSpecs.totalCount} Parameters Extracted
-                    </span>
-                  </div>
-
-                  <div className="specs-grid">
-                    {detectedSpecs.materials.length > 0 && (
-                      <div className="spec-category-box">
-                        <div className="spec-category-label">
-                          <Package size={13} />
-                          <span>Material & Grade</span>
-                        </div>
-                        <div className="spec-category-values">
-                          {detectedSpecs.materials.map((val, i) => (
-                            <span key={i} className="spec-tag highlight">{val}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {detectedSpecs.dimensions.length > 0 && (
-                      <div className="spec-category-box">
-                        <div className="spec-category-label">
-                          <Ruler size={13} />
-                          <span>Dimensions & Capacity</span>
-                        </div>
-                        <div className="spec-category-values">
-                          {detectedSpecs.dimensions.map((val, i) => (
-                            <span key={i} className="spec-tag">{val}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {detectedSpecs.mechanical.length > 0 && (
-                      <div className="spec-category-box">
-                        <div className="spec-category-label">
-                          <Wrench size={13} />
-                          <span>Mechanical & Quality Specs</span>
-                        </div>
-                        <div className="spec-category-values">
-                          {detectedSpecs.mechanical.map((val, i) => (
-                            <span key={i} className="spec-tag">{val}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {detectedSpecs.electrical.length > 0 && (
-                      <div className="spec-category-box">
-                        <div className="spec-category-label">
-                          <Zap size={13} />
-                          <span>Electrical & Energy Rating</span>
-                        </div>
-                        <div className="spec-category-values">
-                          {detectedSpecs.electrical.map((val, i) => (
-                            <span key={i} className="spec-tag">{val}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {detectedSpecs.application.length > 0 && (
-                      <div className="spec-category-box">
-                        <div className="spec-category-label">
-                          <Target size={13} />
-                          <span>Application Scope</span>
-                        </div>
-                        <div className="spec-category-values">
-                          {detectedSpecs.application.map((val, i) => (
-                            <span key={i} className="spec-tag highlight">{val}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Skeleton Loader during inference */}
-            {loading && (
-              <div className="skeleton-container">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="skeleton-card">
-                    <div className="skeleton-row">
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '45px', height: '24px' }}></div>
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '130px', height: '24px' }}></div>
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '110px', height: '24px', borderRadius: '9999px' }}></div>
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '150px', height: '28px', marginLeft: 'auto', borderRadius: '9999px' }}></div>
-                    </div>
-                    <div className="skeleton-shimmer skeleton-box" style={{ width: '100%', height: '10px', marginBottom: '1.2rem', borderRadius: '9999px' }}></div>
-                    <div className="skeleton-shimmer skeleton-box" style={{ width: '75%', height: '28px', marginBottom: '1rem' }}></div>
-                    <div className="skeleton-shimmer skeleton-box" style={{ width: '100%', height: '60px', marginBottom: '1rem' }}></div>
-                    <div className="skeleton-row" style={{ gap: '0.5rem', marginBottom: '0' }}>
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '80px', height: '22px' }}></div>
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '90px', height: '22px' }}></div>
-                      <div className="skeleton-shimmer skeleton-box" style={{ width: '110px', height: '22px' }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Error Message */}
-            {errorMsg && (
-              <div className="alert-box out-of-scope">
-                <div className="alert-icon">
-                  <AlertOctagon size={28} style={{ color: 'var(--color-danger)' }} />
-                </div>
-                <div className="alert-content">
-                  <h4>Recommendation Service Error</h4>
-                  <p>{errorMsg}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Out of Scope Alert */}
-            {result && result.status === 'OUT_OF_SCOPE' && (
-              <div className="alert-box out-of-scope">
-                <div className="alert-icon">
-                  <AlertOctagon size={28} style={{ color: 'var(--color-danger)' }} />
-                </div>
-                <div className="alert-content">
-                  <h4>Out-of-Scope Service Contract Detected</h4>
-                  <p>{result.message}</p>
-                  <div style={{ marginTop: '0.6rem', fontSize: '0.8rem', opacity: 0.9 }}>
-                    Evaluation latency: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>{result.execution_time_ms} ms</span> • Guardrail active
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Results Grid */}
-            {result && result.recommendations && result.recommendations.length > 0 && (
-              <div className="results-container">
-                <div className="results-header">
-                  <h3>
-                    <Award size={22} style={{ color: 'var(--accent-cyan)' }} />
-                    <span>Ranked BIS Recommendations ({result.recommendations.length} Found)</span>
-                  </h3>
-                  <div className="results-meta">
-                    <span className="latency-badge">
-                      <Clock size={13} />
-                      <span>{result.execution_time_ms} ms Latency</span>
-                    </span>
-                    <span style={{ color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <ShieldCheck size={15} />
-                      <span>Cross-Encoder Calibrated</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="recs-grid">
-                  {result.recommendations.map((rec) => {
-                    const fb = feedbackState[rec.standard_id];
-                    const isExpandedClause = expandedClauses[rec.standard_id];
-                    const isWhyExpanded = expandedWhy[rec.standard_id] !== false; // default expanded
-                    const confClass = getConfidenceLevelClass(rec.confidence_level);
-
-                    return (
-                      <div key={rec.standard_id} className="rec-card">
-                        {/* Top Meta Row */}
-                        <div className="rec-card-top">
-                          <div className="rec-left-meta">
-                            <span className="rank-badge">
-                              <Award size={13} />
-                              <span>#{rec.rank}</span>
-                            </span>
-                            <div className="standard-code-wrapper">
-                              <span className="standard-code">{rec.standard_id}</span>
-                              <button
-                                type="button"
-                                className="copy-code-btn"
-                                title="Copy IS Code"
-                                onClick={() => handleCopyCode(rec.standard_id)}
-                              >
-                                {copiedId === rec.standard_id ? (
-                                  <>
-                                    <Check size={12} style={{ color: 'var(--color-success)' }} />
-                                    <span>Copied</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy size={12} />
-                                    <span>Copy</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                            <span className="sector-tag">{rec.sector}</span>
-                            {rec.ics_code && <span className="ics-tag">ICS {rec.ics_code}</span>}
-                          </div>
-
-                          <div className={`confidence-pill ${confClass}`}>
-                            <span>●</span>
-                            <span>{rec.confidence_pct}% MATCH ({rec.confidence_level})</span>
-                          </div>
-                        </div>
-
-                        {/* Confidence Score Bar (0 - 100%) */}
-                        <div className="confidence-bar-section">
-                          <div className="confidence-bar-header">
-                            <span>Calibrated Confidence Match</span>
-                            <strong style={{ fontFamily: 'var(--font-mono)' }}>{rec.confidence_pct}%</strong>
-                          </div>
-                          <div className="confidence-bar-track">
-                            <div
-                              className={`confidence-bar-fill ${confClass}`}
-                              style={{ width: `${Math.min(100, Math.max(5, rec.confidence_pct))}%` }}
-                            ></div>
-                          </div>
-                        </div>
-
-                        {/* Standard Title */}
-                        <div className="standard-title">{rec.title}</div>
-
-                        {/* Mandatory QCO Regulatory Banner */}
-                        {rec.qco_compliance?.is_mandatory && (
-                          <div className="qco-banner">
-                            <Scale size={20} style={{ color: 'var(--color-danger)' }} />
-                            <div>
-                              <strong>MANDATORY QUALITY CONTROL ORDER (QCO):</strong> ISI Certification Mark is legally required for public procurement tenders on GeM under Ministry notification.
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Collapsible "Why this standard?" Section with Highlighted Keywords */}
-                        <div className="why-section-container">
-                          <button
-                            type="button"
-                            className="why-section-header"
-                            onClick={() => toggleWhy(rec.standard_id)}
-                          >
-                            <div className="why-section-title">
-                              <HelpCircle size={16} />
-                              <span>Why this standard? (AI Justification & Matched Parameters)</span>
-                            </div>
-                            {isWhyExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-
-                          {isWhyExpanded && (
-                            <div className="why-section-content">
-                              <p>{rec.justification}</p>
-                              {rec.matched_keywords && rec.matched_keywords.length > 0 && (
-                                <div className="why-keywords-row">
-                                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                    Matched Parameters:
-                                  </span>
-                                  {rec.matched_keywords.map((kw, idx) => (
-                                    <span key={idx} className="kw-badge">
-                                      #{kw}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Compliance Checklist (Tender Specifications vs IS Standard) */}
-                        <div className="compliance-checklist">
-                          <div className="compliance-header">
-                            <span>Specification Verification Checklist</span>
-                            <span style={{ color: 'var(--color-success)', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <CheckCircle2 size={13} />
-                              <span>Audit Validated</span>
-                            </span>
-                          </div>
-                          <div className="checklist-items">
-                            <div className="checklist-item">
-                              <div className="item-left">
-                                <CheckCircle2 size={14} style={{ color: 'var(--color-success)' }} />
-                                <span>Material Grade & Composition</span>
-                              </div>
-                              <span className="checklist-status matched">MATCHED</span>
-                            </div>
-                            <div className="checklist-item">
-                              <div className="item-left">
-                                <CheckCircle2 size={14} style={{ color: 'var(--color-success)' }} />
-                                <span>Physical, Mechanical & Performance Tolerances</span>
-                              </div>
-                              <span className="checklist-status matched">MATCHED</span>
-                            </div>
-                            <div className="checklist-item">
-                              <div className="item-left">
-                                {rec.qco_compliance?.is_mandatory ? (
-                                  <Scale size={14} style={{ color: 'var(--color-danger)' }} />
-                                ) : (
-                                  <Info size={14} style={{ color: 'var(--text-muted)' }} />
-                                )}
-                                <span>
-                                  {rec.qco_compliance?.is_mandatory
-                                    ? 'Mandatory ISI Mark Certification (QCO)'
-                                    : 'Voluntary Standard Certification Mark'}
-                                </span>
-                              </div>
-                              <span
-                                className={`checklist-status ${
-                                  rec.qco_compliance?.is_mandatory ? 'matched' : 'partial'
-                                }`}
-                              >
-                                {rec.qco_compliance?.is_mandatory ? 'MANDATORY' : 'STANDARD'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Matched Clauses Toggle & Drawer */}
-                        {rec.matched_clauses && rec.matched_clauses.length > 0 && (
-                          <>
-                            <button
-                              type="button"
-                              className="clauses-toggle"
-                              onClick={() => toggleClauses(rec.standard_id)}
-                            >
-                              {isExpandedClause ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                              <span>{isExpandedClause ? 'Hide' : 'Inspect'} {rec.matched_clauses.length} Matched Technical Clause(s)</span>
-                            </button>
-
-                            {isExpandedClause && (
-                              <div className="clauses-drawer">
-                                {rec.matched_clauses.map((c, cIdx) => (
-                                  <div key={cIdx} className="clause-item">
-                                    <div className="clause-head">
-                                      {c.clause_no}: {c.title}
-                                    </div>
-                                    <div className="clause-text">{c.text}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        {/* Algorithmic Scoring Diagnostics */}
-                        <div className="scores-row">
-                          <div className="score-chip">
-                            <span>Dense FAISS:</span> {rec.dense_score ? rec.dense_score.toFixed(3) : 'N/A'}
-                          </div>
-                          <div className="score-chip">
-                            <span>Sparse BM25:</span> {rec.sparse_score ? rec.sparse_score.toFixed(3) : 'N/A'}
-                          </div>
-                          <div className="score-chip">
-                            <span>Cross-Encoder:</span> {rec.cross_encoder_score ? rec.cross_encoder_score.toFixed(3) : 'N/A'}
-                          </div>
-                          {rec.officer_boost_applied !== 0 && (
-                            <div className="score-chip" style={{ color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
-                              <span>Officer Boost:</span> +{rec.officer_boost_applied}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Officer Decision & Feedback Loop */}
-                        <div className="officer-actions">
-                          <div className="actions-prompt">
-                            <ShieldCheck size={16} style={{ color: 'var(--accent-cyan)' }} />
-                            <span>Procurement Officer Audit Action:</span>
-                          </div>
-
-                          {fb ? (
-                            <div className="feedback-badge">
-                              <Check size={15} />
-                              <span>
-                                {fb.action === 'ACCEPT' && 'Approved & Accepted by Officer'}
-                                {fb.action === 'REJECT' && 'Marked Non-Applicable by Officer'}
-                                {fb.action === 'CORRECT' && `Overridden to ${fb.correctedId}`}
-                              </span>
-                              <span style={{ fontSize: '0.72rem', opacity: 0.8, marginLeft: '0.4rem' }}>
-                                (SQLite audit log #{fb.logId})
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="action-buttons">
-                              <button
-                                type="button"
-                                className="btn-decision accept"
-                                onClick={() => handleFeedback(rec.standard_id, 'ACCEPT')}
-                              >
-                                <Check size={14} />
-                                <span>Accept Standard</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-decision reject"
-                                onClick={() => handleFeedback(rec.standard_id, 'REJECT')}
-                              >
-                                <X size={14} />
-                                <span>Reject Standard</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-decision override"
-                                onClick={() => openOverrideModal(rec)}
-                              >
-                                <Edit3 size={14} />
-                                <span>Override / Correct</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Tab 2: Standards Catalog Explorer */}
-        {activeTab === 'catalog' && (
-          <section>
-            <div className="input-card">
-              <div className="input-card-header">
-                <div className="input-title">
-                  <h2>
-                    <BookOpen size={22} style={{ color: 'var(--accent-cyan)' }} />
-                    <span>Indian Standards Catalog Explorer</span>
-                  </h2>
-                  <p>Browse, search, and inspect 500+ Indian Standards (BIS) curated for GeM procurement sectors.</p>
-                </div>
-              </div>
-
-              {/* Filters */}
-              <div className="catalog-controls">
-                <input
-                  type="text"
-                  className="catalog-search-input"
-                  value={catalogSearch}
-                  onChange={(e) => {
-                    setCatalogSearch(e.target.value);
-                    setCatalogPage(1);
-                  }}
-                  placeholder="Search by IS code (e.g. IS 1786) or keywords (transformer, cement, steel)..."
-                />
-
+        {/* Input Card */}
+        <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-md transition-all">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="procurement-spec" className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                <Search className="w-4 h-4 text-cyan-400" />
+                <span>Procurement Specification / Tender Description</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <label htmlFor="top-k" className="text-xs text-slate-400">Top Results:</label>
                 <select
-                  className="catalog-sector-select"
-                  value={catalogSector}
-                  onChange={(e) => {
-                    setCatalogSector(e.target.value);
-                    setCatalogPage(1);
-                  }}
+                  id="top-k"
+                  value={topK}
+                  onChange={(e) => setTopK(Number(e.target.value))}
+                  className="bg-slate-800 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 >
-                  <option value="">All Sectors</option>
-                  <option value="Civil Engineering">Civil Engineering</option>
-                  <option value="Electrotechnical">Electrotechnical</option>
-                  <option value="Mechanical">Mechanical Engineering</option>
-                  <option value="Chemical">Chemical</option>
-                  <option value="Medical Equipment">Medical Equipment & Hospital</option>
-                  <option value="Food & Agriculture">Food & Agriculture</option>
-                  <option value="Textiles">Textiles</option>
-                  <option value="Electronics & IT">Electronics & IT</option>
-                  <option value="Petroleum">Petroleum, Coal & Related Products</option>
+                  <option value={3}>Top 3</option>
+                  <option value={5}>Top 5</option>
+                  <option value={10}>Top 10</option>
                 </select>
               </div>
+            </div>
 
-              {/* Results Summary */}
-              <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Showing {catalogList.length} of {catalogTotal} Indian Standards
+            {/* Big Textarea */}
+            <div className="relative">
+              <textarea
+                id="procurement-spec"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={4}
+                placeholder="e.g. Portland cement for residential construction, 43 grade with compressive strength..."
+                className="w-full bg-slate-950/70 border border-slate-800 focus:border-cyan-500 rounded-xl p-4 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition resize-y"
+              ></textarea>
+              <div className="absolute right-3 bottom-3 text-xs text-slate-500 pointer-events-none hidden sm:block">
+                Press <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">Enter</kbd>
+              </div>
+            </div>
+
+            {/* Buttons Row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-2">
+                {query && (
+                  <button
+                    onClick={() => setQuery('')}
+                    className="text-xs text-slate-400 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
+                  >
+                    Clear Text
+                  </button>
+                )}
               </div>
 
-              {/* Table */}
-              <div className="catalog-table-wrapper">
-                <table className="catalog-table">
-                  <thead>
-                    <tr>
-                      <th>Standard Code</th>
-                      <th>Year</th>
-                      <th>Title & Scope</th>
-                      <th>Sector</th>
-                      <th>QCO Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {catalogList.map((std) => (
-                      <tr key={std.standard_id}>
-                        <td>
-                          <strong style={{ color: 'var(--accent-cyan)' }} className="standard-code">
-                            {std.code}
-                          </strong>
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)' }}>{std.year}</td>
-                        <td style={{ maxWidth: '420px' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-                            {std.title}
-                          </div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                            {std.scope?.slice(0, 110)}...
-                          </div>
-                        </td>
-                        <td>
-                          <span className="sector-tag">{std.sector}</span>
-                        </td>
-                        <td>
-                          {std.is_mandatory_qco ? (
-                            <span style={{ color: 'var(--color-danger)', fontWeight: 700, fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <Scale size={13} />
-                              <span>Mandatory QCO</span>
-                            </span>
+              <button
+                id="find-standards-btn"
+                onClick={() => handleRecommend()}
+                disabled={loading || !query.trim()}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-indigo-500/25"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Analyzing Specification...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-cyan-200" />
+                    <span>Find Standards</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Clickable Example Queries */}
+            <div className="pt-3 border-t border-slate-800/80">
+              <p className="text-xs font-medium text-slate-400 mb-2">Click an example to test:</p>
+              <div className="flex flex-wrap gap-2">
+                {EXAMPLE_QUERIES.map((ex, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setQuery(ex.text);
+                      handleRecommend(ex.text);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 transition text-left"
+                  >
+                    <span>{ex.icon}</span>
+                    <span className="font-semibold text-slate-200">{ex.category}:</span>
+                    <span className="text-slate-400 truncate max-w-[200px]">{ex.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4 flex items-start gap-3 text-rose-300">
+            <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-rose-200">Recommendation Failed</p>
+              <p className="mt-0.5 text-xs text-rose-300/90">{error}</p>
+            </div>
+            <button
+              onClick={() => handleRecommend()}
+              className="text-xs font-medium px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Loading State Skeleton */}
+        {loading && (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-5 w-48 bg-slate-800 rounded"></div>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-6 w-32 bg-slate-800 rounded"></div>
+                  <div className="h-6 w-20 bg-slate-800 rounded-full"></div>
+                </div>
+                <div className="h-4 w-3/4 bg-slate-800 rounded"></div>
+                <div className="h-2 w-full bg-slate-800 rounded-full"></div>
+                <div className="flex gap-2">
+                  <div className="h-5 w-16 bg-slate-800 rounded-full"></div>
+                  <div className="h-5 w-24 bg-slate-800 rounded-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Results Section */}
+        {!loading && hasSearched && results.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-cyan-400" />
+                <span>Recommended Indian Standards ({results.length})</span>
+              </h2>
+              <span className="text-xs text-slate-400">Ranked by relevance</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {results.map((item, index) => {
+                const catClass =
+                  CATEGORY_COLORS[item.category] ||
+                  'bg-slate-800 text-slate-300 border-slate-700';
+
+                return (
+                  <div
+                    key={index}
+                    className="group bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-5 sm:p-6 transition shadow-md hover:shadow-xl relative overflow-hidden"
+                  >
+                    {/* Rank indicator badge */}
+                    <div className="absolute top-0 right-0 w-12 h-12 overflow-hidden pointer-events-none">
+                      <div className="absolute transform rotate-45 bg-slate-800 text-slate-400 text-[10px] font-bold py-0.5 right-[-35px] top-[14px] w-[110px] text-center">
+                        #{index + 1}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      {/* Top Header: Code, Category, Copy button */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pr-8">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <span className="text-lg sm:text-xl font-mono font-bold tracking-tight text-cyan-400">
+                            {item.is_code}
+                          </span>
+                          <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${catClass}`}>
+                            {item.category}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => copyToClipboard(item.is_code)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                          title="Copy IS Code to clipboard"
+                        >
+                          {copiedCode === item.is_code ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400 font-semibold">Copied!</span>
+                            </>
                           ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                              Voluntary
-                            </span>
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Copy Code</span>
+                            </>
                           )}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="btn-decision override"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                            onClick={() => setSelectedStandard(std)}
-                          >
-                            Inspect Clauses
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </button>
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-100 group-hover:text-cyan-300 transition">
+                        {item.title}
+                      </h3>
+
+                      {/* Relevance Score Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400 font-medium">Relevance Score</span>
+                          <span className="font-bold text-cyan-400">{item.score}% Match</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ease-out ${
+                              item.score >= 85
+                                ? 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                                : item.score >= 65
+                                ? 'bg-gradient-to-r from-cyan-500 to-blue-500'
+                                : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                            }`}
+                            style={{ width: `${Math.max(5, item.score)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Reason / Explanation Card */}
+                      <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 text-xs sm:text-sm text-slate-300 flex items-start gap-2.5">
+                        <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold text-slate-200">Recommendation Rationale: </span>
+                          <span>{item.reason}</span>
+                        </div>
+                      </div>
+
+                      {/* Matched Keywords */}
+                      {item.matched_keywords && item.matched_keywords.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-xs text-slate-400 mr-1">Matched Keywords:</span>
+                          {item.matched_keywords.map((kw, kidx) => (
+                            <span
+                              key={kidx}
+                              className="px-2 py-0.5 text-xs rounded-md bg-slate-800 text-slate-300 border border-slate-700/60 font-mono"
+                            >
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
 
-        {/* Tab 3: Admin Coverage Analytics */}
-        {activeTab === 'analytics' && (
-          <section>
-            <div className="input-card">
-              <div className="input-card-header">
-                <div className="input-title">
-                  <h2>
-                    <BarChart3 size={22} style={{ color: 'var(--accent-cyan)' }} />
-                    <span>Coverage Gaps & Procurement Feedback Analytics</span>
-                  </h2>
-                  <p>Real-time audit log of officer decisions and gap analysis for standards coverage.</p>
-                </div>
+        {/* Empty State after search */}
+        {!loading && hasSearched && results.length === 0 && !error && (
+          <div className="text-center py-12 px-4 bg-slate-900/40 border border-slate-800 rounded-2xl space-y-3">
+            <BookOpen className="w-10 h-10 text-slate-500 mx-auto" />
+            <h3 className="text-base font-semibold text-slate-200">No matching standards found</h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              We couldn't find an exact Indian Standard match for this query. Try adding specific material names (e.g. Portland cement, TMT rebars, uPVC pipes) or click an example above.
+            </p>
+          </div>
+        )}
+
+        {/* Initial Empty State */}
+        {!hasSearched && (
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto">
+                <Search className="w-4 h-4" />
               </div>
+              <h4 className="text-sm font-semibold text-slate-200">Natural Text Processing</h4>
+              <p className="text-xs text-slate-400">
+                Understands trade terminology, grades (e.g. Fe 500D, 43 Grade), dimensions, and domain synonyms.
+              </p>
+            </div>
 
-              {/* KPI Cards */}
-              <div className="kpi-grid">
-                <div className="kpi-card">
-                  <div className="kpi-title">Catalog Standards</div>
-                  <div className="kpi-value">{systemHealth?.standards_count || 520}+</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.35rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <CheckCircle2 size={13} />
-                    <span>100% Vector Indexed</span>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-title">Total Officer Decisions</div>
-                  <div className="kpi-value">{analyticsData?.total_feedback || 0}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginTop: '0.35rem', fontWeight: 600 }}>
-                    Stored in SQLite Audit DB
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-title">Officer Approvals</div>
-                  <div className="kpi-value" style={{ color: 'var(--color-success)' }}>
-                    {analyticsData?.accepted_count || 0}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
-                    Acceptance Rate: {analyticsData?.acceptance_rate_pct || 100}%
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-title">Rejections / Overrides</div>
-                  <div className="kpi-value" style={{ color: 'var(--color-danger)' }}>
-                    {(analyticsData?.rejected_count || 0) + (analyticsData?.corrected_count || 0)}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginTop: '0.35rem' }}>
-                    Calibrates dynamic boost
-                  </div>
-                </div>
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto">
+                <ShieldCheck className="w-4 h-4" />
               </div>
+              <h4 className="text-sm font-semibold text-slate-200">BIS Compliance Ready</h4>
+              <p className="text-xs text-slate-400">
+                Maps directly to authentic Bureau of Indian Standards specifications across 9 critical procurement domains.
+              </p>
+            </div>
 
-              {/* Audit Log Table */}
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
-                Recent Procurement Officer Audit Entries
-              </h3>
-
-              <div className="catalog-table-wrapper">
-                <table className="catalog-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Decision</th>
-                      <th>Recommended Standard</th>
-                      <th>Officer Notes</th>
-                      <th>Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analyticsData?.recent_feedback && analyticsData.recent_feedback.length > 0 ? (
-                      analyticsData.recent_feedback.map((item) => (
-                        <tr key={item.id}>
-                          <td style={{ fontFamily: 'var(--font-mono)' }}>#{item.id}</td>
-                          <td>
-                            <span
-                              className={`confidence-pill ${
-                                item.action === 'ACCEPT'
-                                  ? 'high'
-                                  : item.action === 'REJECT'
-                                  ? 'low'
-                                  : 'medium'
-                              }`}
-                              style={{ display: 'inline-flex', padding: '0.25rem 0.65rem' }}
-                            >
-                              {item.action}
-                            </span>
-                          </td>
-                          <td>
-                            <strong style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                              {item.recommended_standard_id}
-                            </strong>
-                            {item.corrected_standard_id && (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)' }}>
-                                Corrected to: {item.corrected_standard_id}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ color: 'var(--text-secondary)' }}>{item.officer_notes || '—'}</td>
-                          <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Recent'}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-                          No officer feedback entries logged yet. Test recommendations in the Recommender tab and click Accept/Reject!
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-center space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+                <Sparkles className="w-4 h-4" />
               </div>
+              <h4 className="text-sm font-semibold text-slate-200">Lightweight & Fast</h4>
+              <p className="text-xs text-slate-400">
+                Optimized TF-IDF algorithm responds in milliseconds while consuming under 100MB RAM.
+              </p>
             </div>
           </section>
         )}
       </main>
 
-      {/* Override Standard Modal */}
-      {overrideModalOpen && (
-        <div className="modal-overlay" onClick={() => setOverrideModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Override Standard for Specification</h3>
+      {/* Catalog Modal */}
+      {showCatalog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-cyan-400" />
+                <h3 className="font-bold text-lg text-white">Indian Standards Catalog</h3>
+                <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
+                  {catalogTotal} Total
+                </span>
+              </div>
               <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setOverrideModalOpen(false)}
+                onClick={() => setShowCatalog(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="modal-body">
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                You are overriding <strong style={{ color: 'var(--text-primary)' }}>{overrideTarget?.standard_id}</strong>. Enter the correct Indian Standard code to record in the calibration database.
-              </p>
-
-              <div>
-                <label>Correct Indian Standard ID / Code:</label>
+            {/* Modal Filters */}
+            <div className="p-4 border-b border-slate-800 bg-slate-950/40 flex flex-col sm:flex-row gap-3">
+              <form onSubmit={handleCatalogSearchSubmit} className="flex-1 flex gap-2">
                 <input
                   type="text"
-                  className="modal-input"
-                  placeholder="e.g. IS 2062:2011 or IS 432"
-                  value={correctStandardId}
-                  onChange={(e) => setCorrectStandardId(e.target.value)}
+                  placeholder="Search code or keywords (e.g., cement, IS 1786)..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
-              </div>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 transition"
+                >
+                  Search
+                </button>
+              </form>
 
-              <div>
-                <label>Officer Audit Justification (Optional):</label>
-                <input
-                  type="text"
-                  className="modal-input"
-                  placeholder="e.g. Structural grade E250 requires IS 2062 instead"
-                  value={officerNotes}
-                  onChange={(e) => setOfficerNotes(e.target.value)}
-                />
-              </div>
+              <select
+                value={catalogCategory}
+                onChange={(e) => {
+                  setCatalogCategory(e.target.value);
+                  setCatalogPage(1);
+                }}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              >
+                <option value="All">All Categories</option>
+                <option value="Cement">Cement</option>
+                <option value="Steel">Steel</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Food">Food</option>
+                <option value="Textiles">Textiles</option>
+                <option value="Pipes">Pipes</option>
+                <option value="Paints">Paints</option>
+                <option value="Packaging">Packaging</option>
+                <option value="Safety Equipment">Safety Equipment</option>
+              </select>
             </div>
 
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setOverrideModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-decision accept"
-                onClick={submitOverride}
-                disabled={!correctStandardId.trim()}
-              >
-                <Check size={14} />
-                <span>Submit Correction</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Standard Detail Modal */}
-      {selectedStandard && (
-        <div className="modal-overlay" onClick={() => setSelectedStandard(null)}>
-          <div className="modal-content" style={{ maxWidth: '720px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <span className="sector-tag">{selectedStandard.sector}</span>
-                <strong style={{ fontSize: '1.2rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                  {selectedStandard.standard_id}
-                </strong>
-              </div>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setSelectedStandard(null)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              <h4 style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{selectedStandard.title}</h4>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{selectedStandard.scope}</p>
-
-              {selectedStandard.is_mandatory_qco && (
-                <div className="qco-banner">
-                  <Scale size={18} style={{ color: 'var(--color-danger)' }} />
-                  <div>Mandatory QCO Regulatory Order in effect for GeM procurement.</div>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {catalogLoading ? (
+                <div className="text-center py-12 text-slate-400 flex items-center justify-center gap-2">
+                  <RefreshCw className="w-5 h-5 animate-spin text-cyan-400" />
+                  <span>Loading standards...</span>
                 </div>
-              )}
-
-              <h5 style={{ color: 'var(--accent-cyan)', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                Technical Clauses ({selectedStandard.clauses?.length || 0})
-              </h5>
-              <div className="clauses-drawer">
-                {selectedStandard.clauses?.map((cl, idx) => (
-                  <div key={idx} className="clause-item">
-                    <div className="clause-head">{cl.clause_no}: {cl.title}</div>
-                    <div className="clause-text">{cl.text}</div>
+              ) : catalogStandards.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-sm">
+                  No standards found matching your criteria.
+                </div>
+              ) : (
+                catalogStandards.map((std, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl hover:border-slate-700 transition space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-cyan-400 text-sm">{std.is_code}</span>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                          {std.category}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setQuery(std.title);
+                          setShowCatalog(false);
+                          handleRecommend(std.title);
+                        }}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                      >
+                        <span>Test Query</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-200">{std.title}</p>
+                    <p className="text-xs text-slate-400 line-clamp-2">{std.scope}</p>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
 
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setSelectedStandard(null)}
-              >
-                Close
-              </button>
+            {/* Modal Footer Pagination */}
+            <div className="p-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <span>Page {catalogPage} of {Math.max(1, Math.ceil(catalogTotal / 8))}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={catalogPage <= 1 || catalogLoading}
+                  onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition"
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={catalogPage >= Math.ceil(catalogTotal / 8) || catalogLoading}
+                  onClick={() => setCatalogPage((p) => p + 1)}
+                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Footer */}
-      <footer className="portal-footer">
-        <p>
-          Bureau of Indian Standards (BIS) & Government e-Marketplace (GeM) • Problem Statement <span className="highlight">SIH 26108</span> • Calibrated Hybrid RRF & Cross-Encoder AI
-        </p>
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-900/40 py-6 mt-auto">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2">
+            <span>StandardsFinder © {new Date().getFullYear()}</span>
+            <span>•</span>
+            <span>Smart India Hackathon SIH26108</span>
+          </div>
+          <div>
+            <span>Bureau of Indian Standards (BIS) Recommendation AI</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
