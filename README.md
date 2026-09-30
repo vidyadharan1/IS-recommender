@@ -3,7 +3,8 @@
 **StandardsFinder** is an AI-powered recommendation engine that converts unstructured procurement specifications into the most applicable **Indian Standards (BIS / IS codes)** ranked by relevance.
 
 Built for **Smart India Hackathon Problem SIH26108** (*Ministry of Consumer Affairs, Food & Public Distribution*), it assists public procurement officers, GeM portal buyers, and industry engineers in ensuring compliance with mandatory Bureau of Indian Standards (BIS) and Quality Control Orders (QCOs).
-
+---
+https://is-recommender-frontend.onrender.com/
 ---
 
 ## ⚡ Tech Stack
