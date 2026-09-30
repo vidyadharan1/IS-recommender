@@ -288,22 +288,39 @@ Deploy the project to the internet for free using **Vercel** (Frontend) and **Re
 
 ---
 
-### Step 1: Deploy Backend (Option A: Render)
-1. Push your repository to GitHub.
-2. Sign in to [Render](https://render.com) and click **New +** -> **Web Service**.
-3. Select your GitHub repository.
-4. Configure service settings:
+### Step 1: Deploy Backend on Render (100% Free Tier Ready)
+
+#### Method 1: Instant Blueprint Deployment (Recommended)
+1. Push your repository to GitHub (`git add . && git commit -m "fix(deploy): prepare render deployment" && git push origin main`).
+2. Open the [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** -> **Blueprint**.
+4. Connect your `IS-recommender` GitHub repository.
+5. Render reads `render.yaml` automatically and configures all build commands, CPU PyTorch wheels, health checks (`/health`), and memory optimizations.
+6. Click **Apply** — Render deploys your backend live!
+
+#### Method 2: Manual Web Service
+1. In [Render Dashboard](https://dashboard.render.com), click **New +** -> **Web Service**.
+2. Select your GitHub repository.
+3. Configure settings:
    * **Name**: `is-recommender-api`
+   * **Region**: `Oregon` (or any region)
+   * **Branch**: `main`
    * **Runtime**: `Python 3`
-   * **Build Command**: `pip install -r requirements.txt`
+   * **Build Command**: `pip install --upgrade pip && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements.txt`
    * **Start Command**: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
-   * **Plan**: `Starter` ($7/mo recommended for ML sentence-transformers; free tier has 512MB RAM limit)
-5. Add Environment Variables:
+   * **Plan**: `Free` ($0/mo)
+4. Add Environment Variables:
    | Variable | Value | Description |
    | :--- | :--- | :--- |
    | `PORT` | `10000` | Port assigned by Render |
-   | `ALLOWED_ORIGINS` | `http://localhost:5173,https://your-frontend.vercel.app` | Comma-separated CORS allowed domains |
-6. Click **Deploy Web Service** and copy your backend service URL.
+   | `PYTHON_VERSION` | `3.11.9` | Matches `.python-version` runtime |
+   | `ALLOWED_ORIGINS` | `*` | Or comma-separated frontend URL(s) |
+   | `OMP_NUM_THREADS` | `1` | Restricts OpenMP thread allocations for 512MB RAM |
+   | `MKL_NUM_THREADS` | `1` | Restricts MKL BLAS threads |
+   | `OPENBLAS_NUM_THREADS` | `1` | Restricts OpenBLAS threads |
+5. Set **Health Check Path** to `/health`.
+6. Click **Deploy Web Service** and copy your live backend URL (e.g. `https://is-recommender-api.onrender.com`).
+> **Note on Render Free Tier**: Instances spin down after 15 minutes of inactivity. The first wake-up request takes ~45–50 seconds to warm up the embedding and cross-encoder models into memory. After warming up, requests respond in under 100ms.
 
 ---
 

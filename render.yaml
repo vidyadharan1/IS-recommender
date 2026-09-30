@@ -4,11 +4,19 @@ services:
     runtime: python
     plan: free # 100% Free tier (No credit card or payment required)
     region: oregon
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PORT
         value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: ALLOWED_ORIGINS
-        value: http://localhost:5173,https://your-frontend.vercel.app
+        value: "*"
+      - key: OMP_NUM_THREADS
+        value: 1
+      - key: MKL_NUM_THREADS
+        value: 1
+      - key: OPENBLAS_NUM_THREADS
+        value: 1

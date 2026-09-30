@@ -14,6 +14,19 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# Limit thread pools to minimize RAM footprint on cloud containers (e.g. Render 512MB free tier)
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
+try:
+    import torch
+    torch.set_num_threads(1)
+except ImportError:
+    pass
+
 from is_recommender.recommender import ISRecommender
 from api.routes import router as api_v1_router, set_recommender
 
