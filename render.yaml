@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free # 100% Free tier (No credit card or payment required)
     region: oregon
-    buildCommand: pip install --upgrade pip && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:

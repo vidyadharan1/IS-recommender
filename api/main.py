@@ -5,7 +5,6 @@ Production-ready REST service designed for GeM (Government e-Marketplace) integr
 import os
 import sys
 from pathlib import Path
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,19 +26,9 @@ try:
 except ImportError:
     pass
 
-from is_recommender.recommender import ISRecommender
-from api.routes import router as api_v1_router, set_recommender
+from api.routes import router as api_v1_router, get_recommender
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Preloads the IS-Recommender models and indices on startup."""
-    print("[API] Starting IS-Recommender API Server...")
-    engine = ISRecommender()
-    set_recommender(engine)
-    print("[API] IS-Recommender Engine successfully mounted and warm.")
-    yield
-    print("[API] Shutting down IS-Recommender API Server...")
-
+# Initialize FastAPI without blocking lifespan so Render can bind to the port immediately
 app = FastAPI(
     title="IS-Recommender API (SIH26108)",
     description=(
@@ -49,8 +38,7 @@ app = FastAPI(
     ),
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan
+    redoc_url="/redoc"
 )
 
 # Dynamic CORS Configuration from ALLOWED_ORIGINS env variable
@@ -63,12 +51,10 @@ default_origins = [
 env_origins = os.getenv("ALLOWED_ORIGINS", "")
 if env_origins.strip():
     allowed_origins = [orig.strip() for orig in env_origins.split(",") if orig.strip()]
-    # Keep local development origins intact
     for orig in default_origins:
         if orig not in allowed_origins:
             allowed_origins.append(orig)
 else:
-    # Allow all origins if not explicitly restricted (development mode)
     allowed_origins = ["*"]
 
 is_wildcard = "*" in allowed_origins
@@ -81,17 +67,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Root Health Check endpoint (standard requirement for Render, Cloud Run, and load balancers)
+# 1. Health check responds instantly for Render so port check never times out
 @app.get("/health", summary="Root Health Check")
-async def health_check_root():
-    return {
-        "status": "HEALTHY",
-        "service": "IS-Recommender API",
-        "version": "1.0.0"
-    }
+def health_check():
+    return {"status": "ok"}
 
-# Mount API v1 router
+# Mount API v1 router (uses lazy loading: model loads on first actual query)
 app.include_router(api_v1_router)
+
+# Also expose top-level /recommend endpoint with lazy loader
+@app.post("/recommend", summary="Recommend Indian Standards (BIS)")
+def recommend_root(payload: dict):
+    recommender = get_recommender()
+    spec_text = payload.get("spec_text", "")
+    top_k = payload.get("top_k", 5)
+    return recommender.recommend(spec_text, top_k=top_k)
 
 @app.get("/", summary="Root Status")
 async def root():
