@@ -75,8 +75,21 @@ SYNONYMS = {
     "shoe": ["shoes", "boots", "footwear", "safety", "steel", "toe"],
     "shoes": ["shoe", "boots", "footwear", "safety", "steel", "toe"],
     "boot": ["boots", "safety", "shoes", "footwear"],
-    "boots": ["boot", "safety", "shoes", "footwear"],
-    "harness": ["fall", "arrest", "safety", "belt", "lanyard"]
+    "harness": ["fall", "arrest", "safety", "belt", "lanyard"],
+    "server": ["servers", "rack", "datacenter", "computer", "it", "hardware"],
+    "laptop": ["notebook", "computer", "pc", "desktop", "workstation"],
+    "computer": ["desktop", "laptop", "server", "workstation", "pc", "it"],
+    "pump": ["pumps", "centrifugal", "submersible", "monobloc", "water"],
+    "pumps": ["pump", "centrifugal", "submersible", "monobloc", "water"],
+    "valve": ["valves", "sluice", "butterfly", "gate", "globe", "check"],
+    "valves": ["valve", "sluice", "butterfly", "gate", "globe", "check"],
+    "earthquake": ["seismic", "zone", "base", "shear", "ductile", "vibration"],
+    "seismic": ["earthquake", "ductile", "structural", "response", "spectrum"],
+    "soil": ["geotechnical", "bearing", "capacity", "foundation", "cbr", "compaction"],
+    "concrete": ["cement", "rcc", "mix", "cube", "slump", "admixture", "reinforced"],
+    "ups": ["uninterruptible", "power", "backup", "inverter", "battery", "online"],
+    "solar": ["photovoltaic", "pv", "module", "panel", "inverter", "renewable"],
+    "cybersecurity": ["security", "isms", "iso27001", "encryption", "privacy", "protection"]
 }
 
 

@@ -12,7 +12,7 @@ https://is-recommender-frontend.onrender.com/
 - **Backend**: Python 3.11+ / FastAPI / scikit-learn (TF-IDF + Cosine Similarity + Keyword Boosting + Domain Synonym Expansion).
   - *Ultra-lightweight (< 100MB RAM footprint)*: Built without heavy deep-learning dependencies so it runs reliably on Render's 512MB free tier.
 - **Frontend**: React 19 + Vite + Tailwind CSS + Lucide Icons.
-- **Data**: Curated catalog of 87 realistic Indian Standards across 9 procurement categories (`backend/data/standards.json`).
+- **Data**: Comprehensive catalog of **1,038+ verified Indian Standards (BIS / IS codes)** across Civil Engineering, Electrical & Power, Mechanical & Fire Safety, and Information Technology / Electronics (`data/bis_standards_catalog.json` & `backend/data/standards.json`).
 
 ---
 
@@ -21,7 +21,7 @@ https://is-recommender-frontend.onrender.com/
 ```
 ├── backend/
 │   ├── data/
-│   │   └── standards.json       # 87 Indian Standards across 9 categories
+│   │   └── standards.json       # 1,038+ Indian Standards across major procurement categories
 │   ├── main.py                  # FastAPI app & endpoints
 │   ├── recommender.py           # Preprocessing, TF-IDF & keyword-boosting engine
 │   ├── requirements.txt         # Lightweight Python dependencies

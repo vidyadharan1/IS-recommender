@@ -56,7 +56,10 @@ const EXAMPLE_QUERIES = [
 const CATEGORY_COLORS = {
   Cement: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   Steel: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  Civil: 'bg-amber-600/10 text-amber-300 border-amber-600/30',
   Electrical: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  Mechanical: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+  IT: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
   Food: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   Textiles: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
   Pipes: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
@@ -621,13 +624,16 @@ export default function App() {
                 className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               >
                 <option value="All">All Categories</option>
+                <option value="Civil">Civil</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="IT">IT & Electronics</option>
                 <option value="Cement">Cement</option>
                 <option value="Steel">Steel</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Food">Food</option>
-                <option value="Textiles">Textiles</option>
                 <option value="Pipes">Pipes</option>
                 <option value="Paints">Paints</option>
+                <option value="Food">Food</option>
+                <option value="Textiles">Textiles</option>
                 <option value="Packaging">Packaging</option>
                 <option value="Safety Equipment">Safety Equipment</option>
               </select>

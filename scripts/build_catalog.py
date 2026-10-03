@@ -1887,7 +1887,14 @@ def generate_catalog():
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(standards, f, indent=2, ensure_ascii=False)
 
-    print(f"Successfully generated {len(standards)} BIS standards in {out_file}")
+    print(f"Successfully generated {len(standards)} base BIS standards in {out_file}")
+
+    try:
+        from scripts.generate_500_standards import main as expand_main
+        expand_main()
+    except Exception as e:
+        print(f"Expansion notice: {e}")
+
     return len(standards)
 
 if __name__ == "__main__":

@@ -1,17 +1,23 @@
 import os
 import sys
-from typing import List, Optional
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 
 # Load local environment if available
 load_dotenv()
 
 # Ensure backend directory is in sys.path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from recommender import StandardRecommender
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+try:
+    from backend.recommender import StandardRecommender
+except ImportError:
+    from recommender import StandardRecommender
 
 app = FastAPI(
     title="StandardsFinder API",
@@ -49,7 +55,7 @@ class RecommendationItem(BaseModel):
     title: str
     category: str
     score: float
-    matched_keywords: List[str]
+    matched_keywords: list[str]
     reason: str
 
 
@@ -58,7 +64,7 @@ class StandardItem(BaseModel):
     title: str
     category: str
     scope: str
-    keywords: List[str]
+    keywords: list[str]
 
 
 class StandardsResponse(BaseModel):
@@ -66,7 +72,7 @@ class StandardsResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
-    standards: List[StandardItem]
+    standards: list[StandardItem]
 
 
 class HealthResponse(BaseModel):
@@ -85,7 +91,7 @@ def health_check():
     )
 
 
-@app.post("/api/recommend", response_model=List[RecommendationItem], tags=["Recommendation"])
+@app.post("/api/recommend", response_model=list[RecommendationItem], tags=["Recommendation"])
 def get_recommendations(req: RecommendRequest):
     """
     Accepts procurement specifications and returns top ranked Indian Standards (BIS / IS codes)
@@ -99,15 +105,15 @@ def get_recommendations(req: RecommendRequest):
         results = recommender.recommend(clean_query, top_k=req.top_k)
         return results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error processing recommendation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error processing recommendation: {e!s}")
 
 
 @app.get("/api/standards", response_model=StandardsResponse, tags=["Standards"])
 def list_standards(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    category: Optional[str] = Query(None, description="Filter by category (e.g. Cement, Steel, Electrical)"),
-    search: Optional[str] = Query(None, description="Free text search filter across codes and descriptions")
+    category: str | None = Query(None, description="Filter by category (e.g. Cement, Steel, Electrical)"),
+    search: str | None = Query(None, description="Free text search filter across codes and descriptions")
 ):
     """List or search through the Indian Standards catalog with pagination and filtering."""
     try:
@@ -119,10 +125,10 @@ def list_standards(
         )
         return data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error retrieving standards: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error retrieving standards: {e!s}")
 
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", "8000"))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
